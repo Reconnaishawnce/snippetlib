@@ -21,6 +21,7 @@ import { useLibraryStore } from "../state/libraryStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
+import { AddToQueueMenuItem } from "./AddToQueueMenuItem";
 import { ConfirmDialog } from "./dialogs";
 import { SelectionHeader } from "./SelectionHeader";
 import { Tag } from "@fluentui/react-components";
@@ -169,6 +170,7 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit, onInsert }) =>
               </MenuTrigger>
               <MenuPopover>
                 <MenuList>
+                  <AddToQueueMenuItem snippetId={snippet.id} />
                   <MenuItem onClick={() => onEdit(snippet)}>Edit…</MenuItem>
                   <MenuItem onClick={() => setToDelete(snippet)}>Delete…</MenuItem>
                 </MenuList>

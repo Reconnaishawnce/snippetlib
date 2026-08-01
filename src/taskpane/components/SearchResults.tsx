@@ -28,6 +28,7 @@ import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
 import { getStorage } from "../state/storage";
 import { folderPath } from "../state/folderTreeUtils";
+import { AddToQueueMenuItem } from "./AddToQueueMenuItem";
 import { ConfirmDialog } from "./dialogs";
 import { SelectionHeader } from "./SelectionHeader";
 
@@ -244,6 +245,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit, onInsert }
                 </MenuTrigger>
                 <MenuPopover>
                   <MenuList>
+                    <AddToQueueMenuItem snippetId={snippet.id} />
                     <MenuItem onClick={() => onEdit(snippet)}>Edit…</MenuItem>
                     <MenuItem onClick={() => setToDelete(snippet)}>Delete…</MenuItem>
                   </MenuList>

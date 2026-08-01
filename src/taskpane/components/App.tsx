@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   Button,
+  CounterBadge,
   Divider,
   MessageBar,
   MessageBarActions,
@@ -18,16 +19,19 @@ import { getSelectedText, insertText } from "../../office/documentIO";
 import type { ParsedPlaceholder } from "../../office/placeholderEngine";
 import { useLibraryStore } from "../state/libraryStore";
 import { usePlaceholderStore } from "../state/placeholderStore";
+import { useQueueStore } from "../state/queueStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
 import { buildInsertText, planInsert } from "../state/insertFlow";
+import { unInsertedCount } from "../state/queueOps";
 import { deriveDefaultName } from "../state/snippetName";
 import { getStorage } from "../state/storage";
 import { LibrarySwitcher } from "./LibrarySwitcher";
 import { FolderTree } from "./FolderTree";
 import { PlaceholderDialog } from "./PlaceholderDialog";
 import { PlaceholdersTab } from "./PlaceholdersTab";
+import { QueueTab } from "./QueueTab";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
 import { SnippetList } from "./SnippetList";
@@ -88,12 +92,16 @@ const App: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<FormSession | null>(null);
   const [allFolders, setAllFolders] = React.useState<Folder[]>([]);
-  const [tab, setTab] = React.useState<"browse" | "placeholders" | "tags">("browse");
+  const [tab, setTab] = React.useState<"browse" | "queue" | "placeholders" | "tags">("browse");
   const searchQuery = useSearchStore((s) => s.query);
   const searching = searchQuery.trim().length > 0;
+  const queue = useQueueStore((s) => s.queue);
+  const queueBadge = unInsertedCount(queue);
+  const [dragToDocEnabled, setDragToDocEnabled] = React.useState(false);
   const [pendingInsert, setPendingInsert] = React.useState<{
     snippets: Snippet[];
     missing: ParsedPlaceholder[];
+    onDone?: () => void;
   } | null>(null);
 
   React.useEffect(() => {
@@ -102,20 +110,30 @@ const App: React.FC = () => {
     });
     try {
       usePlaceholderStore.getState().load();
+      useQueueStore.getState().load();
     } catch {
-      // Doc settings unavailable (e.g. outside Word) — placeholders start empty.
+      // Doc settings unavailable (e.g. outside Word) — doc-scoped state starts empty.
     }
+    getStorage()
+      .getPrefs()
+      .then((p) => setDragToDocEnabled(p.enableDocDragDrop))
+      .catch(() => setDragToDocEnabled(false));
   }, [init]);
 
-  const doInsert = async (snippets: Snippet[], values: Record<string, string>) => {
+  const doInsert = async (
+    snippets: Snippet[],
+    values: Record<string, string>,
+    onDone?: () => void
+  ) => {
     try {
       await insertText(buildInsertText(snippets, values));
+      onDone?.();
     } catch (e: unknown) {
       setError(`Insert failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
-  const onInsert = (snippets: Snippet[]) => {
+  const onInsert = (snippets: Snippet[], onDone?: () => void) => {
     if (snippets.length === 0) {
       return;
     }
@@ -124,9 +142,9 @@ const App: React.FC = () => {
     const { missing } = planInsert(snippets, values);
     if (missing.length > 0) {
       // One dialog for all unknown placeholders (§7.6) — then insert.
-      setPendingInsert({ snippets, missing });
+      setPendingInsert({ snippets, missing, onDone });
     } else {
-      void doInsert(snippets, values);
+      void doInsert(snippets, values, onDone);
     }
   };
 
@@ -144,7 +162,21 @@ const App: React.FC = () => {
         store.setValue(placeholder.display, value);
       }
     }
-    void doInsert(pending.snippets, { ...store.values, ...filled });
+    void doInsert(pending.snippets, { ...store.values, ...filled }, pending.onDone);
+  };
+
+  const onGoToSnippet = (snippet: Snippet) => {
+    const membership = snippet.memberships[0];
+    useSearchStore.getState().setQuery("", null);
+    setTab("browse");
+    if (membership) {
+      void useLibraryStore
+        .getState()
+        .selectScope({ kind: "library", libraryId: membership.libraryId })
+        .then(() => useLibraryStore.getState().selectFolder(membership.folderId));
+    } else {
+      void useLibraryStore.getState().selectScope({ kind: "backlog" });
+    }
   };
 
   const openForm = async (session: FormSession) => {
@@ -265,18 +297,21 @@ const App: React.FC = () => {
         <>
           <TabList
             selectedValue={tab}
-            onTabSelect={(_, data) =>
+            onTabSelect={(_, data) => {
+              const value = String(data.value);
               setTab(
-                data.value === "tags"
-                  ? "tags"
-                  : data.value === "placeholders"
-                    ? "placeholders"
-                    : "browse"
-              )
-            }
+                value === "tags" || value === "placeholders" || value === "queue"
+                  ? (value as "queue" | "placeholders" | "tags")
+                  : "browse"
+              );
+            }}
             size="small"
           >
             <Tab value="browse">Browse</Tab>
+            <Tab value="queue">
+              Queue{" "}
+              {queueBadge > 0 && <CounterBadge count={queueBadge} size="small" color="brand" />}
+            </Tab>
             <Tab value="placeholders">Placeholders</Tab>
             <Tab value="tags">Tags</Tab>
           </TabList>
@@ -287,6 +322,12 @@ const App: React.FC = () => {
                 <FolderTree />
                 <SnippetList onEdit={onEdit} onInsert={onInsert} />
               </>
+            ) : tab === "queue" ? (
+              <QueueTab
+                onInsert={onInsert}
+                onGoToSnippet={onGoToSnippet}
+                dragToDocEnabled={dragToDocEnabled}
+              />
             ) : tab === "placeholders" ? (
               <PlaceholdersTab />
             ) : (
