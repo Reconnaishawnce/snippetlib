@@ -4,6 +4,12 @@ Lightweight ADRs for deviations from or clarifications to `TECH_PLAN.md`. Newest
 
 ---
 
+## ADR-005: Removed the template's `es6-promise` ProvidePlugin shim
+
+**Date:** 2026-08-01 · **Milestone:** M2
+
+The official template's webpack config injects `es6-promise` for every `Promise` reference via `ProvidePlugin`. TypeScript's transpiled `async/await` helpers then resolve through that polyfill instead of the native Promise, which defeats Dexie's transaction zone tracking — IndexedDB transactions auto-commit before their continuations run (`PrematureCommitError: Transaction committed too early`) in real browsers. Caught by a headless-Chromium smoke test; fake-indexeddb does not enforce commit timing, so unit tests can't see it. Removed the shim and the `es6-promise` dependency; `core-js` in the polyfill entry already supplies a global `Promise` for old webviews, which Dexie handles correctly.
+
 ## ADR-004: Commit directly to `main` — no feature branches
 
 **Date:** 2026-08-01 · **Milestone:** M0
