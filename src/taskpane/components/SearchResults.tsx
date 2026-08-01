@@ -4,6 +4,7 @@ import {
   Button,
   Caption1,
   Card,
+  Checkbox,
   Menu,
   MenuItem,
   MenuList,
@@ -14,10 +15,11 @@ import {
   PopoverTrigger,
   Tag,
   Text,
+  Tooltip,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
-import { Eye16Regular, MoreHorizontal16Regular } from "@fluentui/react-icons";
+import { Eye16Regular, MoreHorizontal16Regular, TextAdd20Regular } from "@fluentui/react-icons";
 import type { Snippet } from "../../models/entities";
 import { highlightSegments, makeExcerpt } from "../../search/highlight";
 import { useLibraryStore } from "../state/libraryStore";
@@ -27,6 +29,7 @@ import { useTagStore } from "../state/tagStore";
 import { getStorage } from "../state/storage";
 import { folderPath } from "../state/folderTreeUtils";
 import { ConfirmDialog } from "./dialogs";
+import { SelectionHeader } from "./SelectionHeader";
 
 const useStyles = makeStyles({
   list: {
@@ -96,9 +99,11 @@ function Highlighted({ text, terms, mark }: { text: string; terms: string[]; mar
 
 export interface SearchResultsProps {
   onEdit: (snippet: Snippet) => void;
+  /** Insert one or more snippets at the cursor, in result order (§7.5, M4). */
+  onInsert: (snippets: Snippet[]) => void;
 }
 
-export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit }) => {
+export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit, onInsert }) => {
   const styles = useStyles();
   const hits = useSearchStore((s) => s.hits);
   const filterTagIds = useSearchStore((s) => s.filterTagIds);
@@ -108,6 +113,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit }) => {
 
   const [resolved, setResolved] = React.useState<Map<string, Snippet>>(new Map());
   const [toDelete, setToDelete] = React.useState<Snippet | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [allFolders, setAllFolders] = React.useState<
     Awaited<ReturnType<ReturnType<typeof getStorage>["getAllFolders"]>>
   >([]);
@@ -152,8 +158,33 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit }) => {
     );
   }
 
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const insertSelected = () => {
+    const chosen = visible
+      .filter(({ snippet }) => selectedIds.has(snippet.id))
+      .map((v) => v.snippet);
+    setSelectedIds(new Set());
+    onInsert(chosen);
+  };
+
   return (
     <div className={styles.list}>
+      <SelectionHeader
+        count={selectedIds.size}
+        onInsertAll={insertSelected}
+        onClear={() => setSelectedIds(new Set())}
+      />
       {visible.map(({ hit, snippet }) => {
         const firstMembership = snippet.memberships[0];
         const breadcrumb = firstMembership
@@ -169,9 +200,23 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit }) => {
         return (
           <Card key={snippet.id} className={styles.card} size="small">
             <div className={styles.header}>
+              <Checkbox
+                checked={selectedIds.has(snippet.id)}
+                onChange={(_, data) => toggleSelected(snippet.id, Boolean(data.checked))}
+                aria-label={`Select ${snippet.name}`}
+              />
               <span className={styles.name}>
                 <Highlighted text={snippet.name} terms={hit.terms} mark={styles.mark} />
               </span>
+              <Tooltip content="Insert at cursor" relationship="label">
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<TextAdd20Regular />}
+                  aria-label={`Insert ${snippet.name}`}
+                  onClick={() => onInsert([snippet])}
+                />
+              </Tooltip>
               <Popover withArrow>
                 <PopoverTrigger disableButtonEnhancement>
                   <Button

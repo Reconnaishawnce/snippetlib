@@ -4,22 +4,25 @@ import {
   Button,
   Caption1,
   Card,
+  Checkbox,
   Menu,
   MenuItem,
   MenuList,
   MenuPopover,
   MenuTrigger,
   Text,
+  Tooltip,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
-import { MoreHorizontal16Regular } from "@fluentui/react-icons";
+import { MoreHorizontal16Regular, TextAdd20Regular } from "@fluentui/react-icons";
 import type { Snippet } from "../../models/entities";
 import { useLibraryStore } from "../state/libraryStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
 import { ConfirmDialog } from "./dialogs";
+import { SelectionHeader } from "./SelectionHeader";
 import { Tag } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
@@ -70,9 +73,11 @@ const useStyles = makeStyles({
 
 export interface SnippetListProps {
   onEdit: (snippet: Snippet) => void;
+  /** Insert one or more snippets at the cursor, in list order (§7.5, M4). */
+  onInsert: (snippets: Snippet[]) => void;
 }
 
-export const SnippetList: React.FC<SnippetListProps> = ({ onEdit }) => {
+export const SnippetList: React.FC<SnippetListProps> = ({ onEdit, onInsert }) => {
   const styles = useStyles();
   const { scope, selectedFolderId } = useLibraryStore();
   const snippets = useSnippetStore((s) => s.snippets);
@@ -80,6 +85,7 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit }) => {
   const filterTagIds = useSearchStore((s) => s.filterTagIds);
   const tags = useTagStore((s) => s.tags);
   const [toDelete, setToDelete] = React.useState<Snippet | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
   const visible = React.useMemo(() => {
     let list = snippets;
@@ -109,12 +115,49 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit }) => {
     );
   }
 
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const insertSelected = () => {
+    const chosen = visible.filter((s) => selectedIds.has(s.id));
+    setSelectedIds(new Set());
+    onInsert(chosen);
+  };
+
   return (
     <div className={styles.list}>
+      <SelectionHeader
+        count={selectedIds.size}
+        onInsertAll={insertSelected}
+        onClear={() => setSelectedIds(new Set())}
+      />
       {visible.map((snippet) => (
         <Card key={snippet.id} className={styles.card} size="small">
           <div className={styles.header}>
+            <Checkbox
+              checked={selectedIds.has(snippet.id)}
+              onChange={(_, data) => toggleSelected(snippet.id, Boolean(data.checked))}
+              aria-label={`Select ${snippet.name}`}
+            />
             <span className={styles.name}>{snippet.name}</span>
+            <Tooltip content="Insert at cursor" relationship="label">
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<TextAdd20Regular />}
+                aria-label={`Insert ${snippet.name}`}
+                onClick={() => onInsert([snippet])}
+              />
+            </Tooltip>
             <Menu>
               <MenuTrigger disableButtonEnhancement>
                 <Button
