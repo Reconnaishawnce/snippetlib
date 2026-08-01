@@ -29,15 +29,16 @@
     "watch": "webpack --mode development --watch"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
     "@fluentui/react-components": "^9.55.1",
     "@fluentui/react-icons": "^2.0.264",
     "core-js": "^3.36.0",
     "dexie": "^4.4.4",
-    "es6-promise": "^4.2.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "regenerator-runtime": "^0.14.1",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
