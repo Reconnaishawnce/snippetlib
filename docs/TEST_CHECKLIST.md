@@ -6,10 +6,10 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 
 ## M0 — Scaffold
 
-- [ ] `npm run dev` starts the dev server, sideloads, and launches Word (Windows)
+- [x] `npm run dev` starts the dev server, sideloads, and launches Word (Windows, 2026-08-01)
 - [ ] `npm run dev` starts the dev server, sideloads, and launches Word (Mac)
-- [ ] ReportSnips button appears on the Home tab with the ReportSnips icon
-- [ ] Task pane opens and renders the ReportSnips welcome screen (no blank pane, no console errors)
+- [x] ReportSnips button appears on the Home tab with the ReportSnips icon (Windows, 2026-08-01)
+- [x] Task pane opens and renders the ReportSnips welcome screen (Windows, 2026-08-01)
 - [ ] Production manifest (`dist/manifest.xml`) sideloads via shared-folder catalog (Windows) and loads from GitHub Pages
 - [ ] Production manifest sideloads via `wef` folder (Mac) and loads from GitHub Pages
 
