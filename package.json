@@ -15,6 +15,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
+    "predev": "npm install --no-audit --no-fund",
     "dev": "office-addin-debugging start manifest.xml",
     "dev-server": "webpack serve --mode development",
     "stop": "office-addin-debugging stop manifest.xml",
