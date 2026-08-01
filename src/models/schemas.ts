@@ -66,6 +66,7 @@ export const appPrefsSchema = z.object({
   suppressNewTagConfirm: z.boolean(),
   lastExportAt: isoDateString.nullable(),
   changesSinceExport: z.number().int().nonnegative(),
+  enableDocDragDrop: z.boolean(),
 });
 
 /** ---- Document-scoped state (validated on every doc-settings read) ---- */

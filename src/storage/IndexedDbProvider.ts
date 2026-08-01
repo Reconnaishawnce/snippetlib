@@ -33,6 +33,7 @@ const DEFAULT_PREFS: AppPrefs = {
   suppressNewTagConfirm: false,
   lastExportAt: null,
   changesSinceExport: 0,
+  enableDocDragDrop: true, // §7.7: implemented + flagged; Insert stays the contract
 };
 
 export interface IndexedDbProviderOptions {
@@ -408,6 +409,8 @@ export class IndexedDbProvider implements StorageProvider {
       suppressNewTagConfirm: row.suppressNewTagConfirm,
       lastExportAt: row.lastExportAt,
       changesSinceExport: row.changesSinceExport,
+      // Rows written before the flag existed default it on.
+      enableDocDragDrop: row.enableDocDragDrop ?? true,
     };
   }
 

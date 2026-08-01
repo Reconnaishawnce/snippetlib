@@ -259,6 +259,7 @@ describe("prefs", () => {
       suppressNewTagConfirm: false,
       lastExportAt: null,
       changesSinceExport: 0,
+      enableDocDragDrop: true,
     });
 
     const updated = await storage.updatePrefs({ suppressNewTagConfirm: true });

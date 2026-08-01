@@ -88,6 +88,8 @@ export interface AppPrefs {
   suppressNewTagConfirm: boolean; // "Stop Showing This"
   lastExportAt: string | null;
   changesSinceExport: number;
+  /** Feature flag (§7.7): native drag from queue into the document. */
+  enableDocDragDrop: boolean;
 }
 
 /** ---- Import/export bundle (§7.8) — the sharing currency and backup format ---- */
