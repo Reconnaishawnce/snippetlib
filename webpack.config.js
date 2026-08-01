@@ -16,6 +16,9 @@ module.exports = async (env, options) => {
   const dev = options.mode === "development";
   const config = {
     devtool: "source-map",
+    // Persist the compile cache to disk: the first `npm run dev` still pays
+    // full price (~30-50s), but every later start reuses it (seconds).
+    cache: { type: "filesystem" },
     entry: {
       polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
       react: ["react", "react-dom"],

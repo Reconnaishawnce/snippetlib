@@ -56,4 +56,31 @@ describe("placeholderStore", () => {
     usePlaceholderStore.getState().load();
     expect(usePlaceholderStore.getState().values).toEqual({});
   });
+
+  it("registerDisplays pre-lists placeholders without values (scan feature)", () => {
+    const added = usePlaceholderStore.getState().registerDisplays([
+      { key: "building name", display: "Building Name" },
+      { key: "client", display: "Client" },
+    ]);
+    expect(added).toBe(2);
+    const state = usePlaceholderStore.getState();
+    expect(state.displays).toEqual({ "building name": "Building Name", client: "Client" });
+    expect(state.values).toEqual({}); // no values — inserts still prompt
+
+    // Idempotent, keeps first-seen display, and persists across reload.
+    expect(
+      usePlaceholderStore.getState().registerDisplays([{ key: "client", display: "CLIENT" }])
+    ).toBe(0);
+    usePlaceholderStore.setState({ values: {}, displays: {} });
+    usePlaceholderStore.getState().load();
+    expect(usePlaceholderStore.getState().displays.client).toBe("Client");
+  });
+
+  it("setting an empty value un-sets it but keeps the display row", () => {
+    usePlaceholderStore.getState().setValue("Client", "Acme");
+    usePlaceholderStore.getState().setValue("Client", "");
+    const state = usePlaceholderStore.getState();
+    expect(state.values).toEqual({});
+    expect(state.displays).toEqual({ client: "Client" });
+  });
 });

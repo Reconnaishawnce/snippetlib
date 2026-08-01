@@ -14,12 +14,20 @@ const DISPLAYS_KEY = "reportsnips.placeholderDisplays";
 export interface PlaceholderState {
   /** normalized key → substitution value for this document. */
   values: Record<string, string>;
-  /** normalized key → first-seen display casing. */
+  /**
+   * normalized key → first-seen display casing. May contain keys with no
+   * value yet (pre-listed via Scan snippets) — those still prompt on insert.
+   */
   displays: Record<string, string>;
 
   load(): void;
-  /** Store (or update) a value; records the display casing on first sight. */
+  /**
+   * Store (or update) a value; records the display casing on first sight.
+   * An empty value un-sets the entry (it will prompt again on insert).
+   */
   setValue(display: string, value: string): void;
+  /** Pre-list placeholders (display only, no value) — the Scan feature. */
+  registerDisplays(entries: { key: string; display: string }[]): number;
   removeValue(key: string): void;
 }
 
@@ -39,7 +47,12 @@ export const usePlaceholderStore = create<PlaceholderState>((set, get) => ({
     if (!key) {
       return;
     }
-    const values = { ...get().values, [key]: value };
+    const values = { ...get().values };
+    if (value === "") {
+      delete values[key]; // blank = unset: keep the row, prompt again on insert
+    } else {
+      values[key] = value;
+    }
     const displays = { ...get().displays };
     if (!displays[key]) {
       displays[key] = display;
@@ -47,6 +60,22 @@ export const usePlaceholderStore = create<PlaceholderState>((set, get) => ({
     set({ values, displays });
     writeDocSettings(VALUES_KEY, values);
     writeDocSettings(DISPLAYS_KEY, displays);
+  },
+
+  registerDisplays(entries) {
+    const displays = { ...get().displays };
+    let added = 0;
+    for (const entry of entries) {
+      if (entry.key && !displays[entry.key]) {
+        displays[entry.key] = entry.display;
+        added += 1;
+      }
+    }
+    if (added > 0) {
+      set({ displays });
+      writeDocSettings(DISPLAYS_KEY, displays);
+    }
+    return added;
   },
 
   removeValue(key) {
