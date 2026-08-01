@@ -32,10 +32,12 @@
     "@fluentui/react-components": "^9.55.1",
     "@fluentui/react-icons": "^2.0.264",
     "core-js": "^3.36.0",
+    "dexie": "^4.4.4",
     "es6-promise": "^4.2.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "regenerator-runtime": "^0.14.1"
+    "regenerator-runtime": "^0.14.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
@@ -52,6 +54,7 @@
     "copy-webpack-plugin": "^14.0.0",
     "eslint-plugin-office-addins": "^4.0.10",
     "eslint-plugin-react": "^7.28.0",
+    "fake-indexeddb": "^6.2.5",
     "file-loader": "^6.2.0",
     "html-loader": "^5.0.0",
     "html-webpack-plugin": "^5.6.0",
