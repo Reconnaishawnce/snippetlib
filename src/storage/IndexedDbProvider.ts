@@ -204,6 +204,10 @@ export class IndexedDbProvider implements StorageProvider {
     return this.db.folders.where("libraryId").equals(libraryId).toArray();
   }
 
+  async getAllFolders(): Promise<Folder[]> {
+    return this.db.folders.toArray();
+  }
+
   async updateFolder(folder: Folder): Promise<Folder> {
     const updated: Folder = { ...folder, updatedAt: nowIso() };
     await this.db.folders.put(updated);

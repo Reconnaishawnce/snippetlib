@@ -65,6 +65,7 @@ export interface StorageProvider {
   createFolder(input: FolderInput): Promise<Folder>;
   getFolder(id: string): Promise<Folder | undefined>;
   getFoldersByLibrary(libraryId: string): Promise<Folder[]>;
+  getAllFolders(): Promise<Folder[]>;
   updateFolder(folder: Folder): Promise<Folder>;
   /** Deletes the folder; child folders and snippet memberships move to its parent (§7.2). */
   deleteFolder(id: string): Promise<void>;
