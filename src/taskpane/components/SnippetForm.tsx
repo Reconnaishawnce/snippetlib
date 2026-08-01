@@ -21,6 +21,7 @@ import {
 import type { Folder, Library, Snippet, SnippetMembership } from "../../models/entities";
 import { folderPath } from "../state/folderTreeUtils";
 import { detectPlaceholders } from "../state/snippetName";
+import { TagInput, type TagChip } from "./TagInput";
 
 const useStyles = makeStyles({
   fields: {
@@ -39,6 +40,8 @@ export interface SnippetFormValues {
   name: string;
   content: string;
   memberships: SnippetMembership[];
+  /** Committed tag chips; resolved to tag ids (creating new tags) at save time. */
+  tagChips: TagChip[];
 }
 
 export interface SnippetFormProps {
@@ -95,12 +98,14 @@ export const SnippetForm: React.FC<SnippetFormProps> = (props) => {
   const [name, setName] = React.useState("");
   const [content, setContent] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<string[]>([]);
+  const [tagChips, setTagChips] = React.useState<TagChip[]>([]);
 
   React.useEffect(() => {
     if (props.open) {
       setName(props.initial.name);
       setContent(props.initial.content);
       setSelectedKeys(props.initial.memberships.map(targetKey));
+      setTagChips(props.initial.tagChips);
     }
   }, [props.open, props.initial]);
 
@@ -124,7 +129,7 @@ export const SnippetForm: React.FC<SnippetFormProps> = (props) => {
     const memberships = selectedKeys
       .map((key) => optionByKey.get(key)?.membership)
       .filter((m): m is SnippetMembership => Boolean(m));
-    props.onSave({ name: name.trim(), content, memberships });
+    props.onSave({ name: name.trim(), content, memberships, tagChips });
   };
 
   return (
@@ -157,6 +162,9 @@ export const SnippetForm: React.FC<SnippetFormProps> = (props) => {
                   </span>
                 </div>
               )}
+              <Field label="Tags">
+                <TagInput chips={tagChips} onChange={setTagChips} />
+              </Field>
               <Field
                 label="Save to"
                 hint={

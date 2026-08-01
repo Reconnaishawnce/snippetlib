@@ -16,8 +16,11 @@ import {
 import { MoreHorizontal16Regular } from "@fluentui/react-icons";
 import type { Snippet } from "../../models/entities";
 import { useLibraryStore } from "../state/libraryStore";
+import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
+import { useTagStore } from "../state/tagStore";
 import { ConfirmDialog } from "./dialogs";
+import { Tag } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
   list: {
@@ -51,6 +54,11 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
     whiteSpace: "pre-wrap",
   },
+  chips: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: tokens.spacingHorizontalXXS,
+  },
   empty: {
     textAlign: "center",
     color: tokens.colorNeutralForeground3,
@@ -69,6 +77,8 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit }) => {
   const { scope, selectedFolderId } = useLibraryStore();
   const snippets = useSnippetStore((s) => s.snippets);
   const remove = useSnippetStore((s) => s.remove);
+  const filterTagIds = useSearchStore((s) => s.filterTagIds);
+  const tags = useTagStore((s) => s.tags);
   const [toDelete, setToDelete] = React.useState<Snippet | null>(null);
 
   const visible = React.useMemo(() => {
@@ -80,8 +90,12 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit }) => {
         )
       );
     }
+    // Multi-tag filter, AND semantics (§7.4).
+    list = list.filter((snippet) => filterTagIds.every((tagId) => snippet.tagIds.includes(tagId)));
     return [...list].sort((a, b) => a.name.localeCompare(b.name));
-  }, [snippets, scope, selectedFolderId]);
+  }, [snippets, scope, selectedFolderId, filterTagIds]);
+
+  const tagsById = React.useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
   if (visible.length === 0) {
     return (
@@ -122,6 +136,18 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit }) => {
           <Text size={200} className={styles.preview}>
             {snippet.content}
           </Text>
+          {snippet.tagIds.length > 0 && (
+            <span className={styles.chips}>
+              {snippet.tagIds.map((tagId) => {
+                const tag = tagsById.get(tagId);
+                return tag ? (
+                  <Tag key={tagId} size="extra-small" appearance="outline">
+                    {tag.name}
+                  </Tag>
+                ) : null;
+              })}
+            </span>
+          )}
           <Caption1>
             {snippet.memberships.length === 0
               ? "Unassigned Backlog"

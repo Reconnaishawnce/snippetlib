@@ -6,6 +6,8 @@ import {
   MessageBarActions,
   MessageBarBody,
   Spinner,
+  Tab,
+  TabList,
   Toaster,
   makeStyles,
   tokens,
@@ -14,13 +16,20 @@ import { Add16Regular, Dismiss16Regular } from "@fluentui/react-icons";
 import type { Folder, Snippet } from "../../models/entities";
 import { getSelectedText } from "../../office/documentIO";
 import { useLibraryStore } from "../state/libraryStore";
+import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
+import { useTagStore } from "../state/tagStore";
 import { deriveDefaultName } from "../state/snippetName";
 import { getStorage } from "../state/storage";
 import { LibrarySwitcher } from "./LibrarySwitcher";
 import { FolderTree } from "./FolderTree";
+import { SearchBox } from "./SearchBox";
+import { SearchResults } from "./SearchResults";
 import { SnippetList } from "./SnippetList";
 import { SnippetForm, type SnippetFormValues } from "./SnippetForm";
+import { TagFilterBar } from "./TagFilterBar";
+import { TagManager } from "./TagManager";
+import { resolveChipTagIds, type TagChip } from "./TagInput";
 
 const useStyles = makeStyles({
   root: {
@@ -74,6 +83,9 @@ const App: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<FormSession | null>(null);
   const [allFolders, setAllFolders] = React.useState<Folder[]>([]);
+  const [tab, setTab] = React.useState<"browse" | "tags">("browse");
+  const searchQuery = useSearchStore((s) => s.query);
+  const searching = searchQuery.trim().length > 0;
 
   React.useEffect(() => {
     init().catch((e: unknown) => {
@@ -110,15 +122,26 @@ const App: React.FC = () => {
           scope.kind === "library"
             ? [{ libraryId: scope.libraryId, folderId: selectedFolderId }]
             : [],
+        tagChips: [],
       },
     });
   };
 
   const onEdit = (snippet: Snippet) => {
+    const tagsById = new Map(useTagStore.getState().tags.map((t) => [t.id, t]));
+    const tagChips: TagChip[] = snippet.tagIds
+      .map((id) => tagsById.get(id))
+      .filter((t): t is NonNullable<typeof t> => Boolean(t))
+      .map((t) => ({ name: t.name, tagId: t.id }));
     void openForm({
       mode: "edit",
       editing: snippet,
-      initial: { name: snippet.name, content: snippet.content, memberships: snippet.memberships },
+      initial: {
+        name: snippet.name,
+        content: snippet.content,
+        memberships: snippet.memberships,
+        tagChips,
+      },
     });
   };
 
@@ -129,10 +152,12 @@ const App: React.FC = () => {
       return;
     }
     try {
+      const tagIds = await resolveChipTagIds(values.tagChips);
+      const { name, content, memberships } = values;
       if (session.mode === "create") {
-        await saveNew({ ...values, tagIds: [] });
+        await saveNew({ name, content, memberships, tagIds });
       } else if (session.editing) {
-        await saveEdit({ ...session.editing, ...values });
+        await saveEdit({ ...session.editing, name, content, memberships, tagIds });
       }
     } catch (e: unknown) {
       setError(`Saving failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -175,11 +200,36 @@ const App: React.FC = () => {
           </MessageBar>
         )}
       </div>
+      <SearchBox />
       <Divider className={styles.divider} />
-      <div className={styles.content}>
-        <FolderTree />
-        <SnippetList onEdit={onEdit} />
-      </div>
+      {searching ? (
+        <div className={styles.content}>
+          <TagFilterBar />
+          <SearchResults onEdit={onEdit} />
+        </div>
+      ) : (
+        <>
+          <TabList
+            selectedValue={tab}
+            onTabSelect={(_, data) => setTab(data.value === "tags" ? "tags" : "browse")}
+            size="small"
+          >
+            <Tab value="browse">Browse</Tab>
+            <Tab value="tags">Tags</Tab>
+          </TabList>
+          <div className={styles.content}>
+            {tab === "browse" ? (
+              <>
+                <TagFilterBar />
+                <FolderTree />
+                <SnippetList onEdit={onEdit} />
+              </>
+            ) : (
+              <TagManager />
+            )}
+          </div>
+        </>
+      )}
 
       {form && (
         <SnippetForm
