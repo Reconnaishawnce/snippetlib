@@ -4,6 +4,17 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### M5 — Queue (2026-08-01)
+
+- The Queue tab (§7.7): per-document staging list stored in the Word file's settings; user-named collapsible sections (default "Queue"), un-inserted count badge on the tab and per section.
+- "Add to Queue" on every snippet row and search result, with a section-picker flyout when more than one section exists (last choice remembered per document).
+- Insert from queue: per-item Insert and per-section **Insert All** (top to bottom), both with full placeholder resolution; items mark as inserted (dimmed + struck through, sinking to the bottom) rather than disappearing; **Clear inserted** per section.
+- Drag to reorder items and move them between sections (drop on an item to take its place, on a section header to append); deleting a section moves its items to the first remaining section.
+- Deleted snippets render as "(snippet deleted)" with a remove affordance — never a crash.
+- Feature-flagged native **drag into the document**: a grip on each queue item carries the placeholder-resolved plain text (unknown tokens kept — no dialog can interrupt a drag). Flag defaults on; toggle lands with Settings in M7.
+- Placeholders tab gained **Scan snippets**: pre-lists every `[Placeholder]` across the library so values can be filled before writing begins (owner request); pre-listed rows still prompt until filled.
+- Dev: webpack filesystem cache — after the first compile, `npm run dev` starts in seconds instead of ~50 s.
+
 ### M4 — Insert & placeholders (2026-08-01)
 
 - Insert at cursor (§6): per-snippet Insert button in browse and search, plus multi-select checkboxes with **Insert All** in list order (§7.5).

@@ -24,9 +24,16 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Blank dialog field keeps the literal `[token]` in the inserted text
 - [ ] `\[escaped\]` text inserts as `[escaped]` and never prompts
 
-## Later milestones (placeholders — filled in as features land)
+## M5 — Queue
 
-- Queue persists after closing/reopening the document (M5)
-- Native drag-drop behavior notes per platform (M5)
+- [ ] "Add to Queue" from a browse row and a search result lands items in the Queue tab (badge updates)
+- [ ] With 2+ sections, "Add to Queue" offers a section picker and remembers the last choice
+- [ ] Per-item Insert and per-section Insert All insert top-to-bottom with placeholders resolved
+- [ ] Inserted items dim + strike through and sink; "Clear inserted" removes them
+- [ ] Drag reorders items and moves them between sections
+- [ ] Queue persists after closing/reopening the document
+- [ ] Deleting a queued snippet from the library shows "(snippet deleted)" in the queue, no crash
+- [ ] Native drag grip into the document: note behavior per platform (Windows / Mac) — this is a bonus path, Insert is the contract
+- [ ] Placeholders tab "Scan snippets" pre-lists all placeholders; unfilled ones still prompt on insert
 - Import/export round-trip between two machines (M6)
 - Dark mode pass; 320 px width pass (M7)
