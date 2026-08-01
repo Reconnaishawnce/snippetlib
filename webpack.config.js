@@ -3,7 +3,6 @@
 const devCerts = require("office-addin-dev-certs");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const webpack = require("webpack");
 
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://reconnaishawnce.github.io/snippetlib/"; // GitHub Pages deployment (plan §2)
@@ -90,9 +89,10 @@ module.exports = async (env, options) => {
         template: "./src/commands/commands.html",
         chunks: ["polyfill", "commands"],
       }),
-      new webpack.ProvidePlugin({
-        Promise: ["es6-promise", "Promise"],
-      }),
+      // NOTE: no ProvidePlugin Promise shim here. The template's es6-promise
+      // injection shadows the Promise used by transpiled async/await, which
+      // breaks Dexie's transaction zone (PrematureCommitError). core-js in the
+      // polyfill entry already supplies a global Promise for old webviews.
     ],
     devServer: {
       hot: true,
