@@ -4,6 +4,16 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### M3 — Tags & search (2026-08-01)
+
+- Tag chip input (§7.4) in the save/edit form: ranked autocomplete (usage count desc), Enter/comma commits, new-tag confirmation with **Yes / No / Stop showing this** (persisted preference). New tags are created at save time, so cancelling the form leaves no orphans.
+- Tag Manager tab: usage-ranked list; rename (merges automatically on name collision, with confirm), merge-into, delete — every confirm states the affected snippet count.
+- Multi-tag filter bar with **AND** semantics on both browse and search views; active filters shown as dismissible chips.
+- Full-text search (§7.5): MiniSearch index over name (boost 3) / tags (2) / content (1) with prefix + fuzzy matching, 150 ms debounce, library scoping with an "All libraries" toggle, incremental index updates on snippet changes; `/` focuses the search box.
+- Results show highlighted name, library>folder breadcrumb, tag chips, highlighted excerpt, read-only preview popover, and edit/delete actions.
+- Verified over 200 seeded snippets in tests (search < 100 ms; typical < 5 ms).
+- UX fixes from M2 feedback: blank-pane self-reload watchdog (max 2 tries), settings-gear "Manage libraries" button replacing the ambiguous chevron, dev-overlay no longer triggered by benign ResizeObserver noise; tag usage counts refresh live after saves.
+
 ### M2 — Libraries, folders, snippets (2026-08-01)
 
 - Library switcher (§7.1): All Libraries / Unassigned Backlog / alphabetical libraries; create, rename, delete with consequence-spelling confirm; first-run seeds "My Snippets"; active library persists across sessions.
