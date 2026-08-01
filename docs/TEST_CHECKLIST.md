@@ -13,11 +13,19 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Production manifest (`dist/manifest.xml`) sideloads via shared-folder catalog (Windows) and loads from GitHub Pages
 - [ ] Production manifest sideloads via `wef` folder (Mac) and loads from GitHub Pages
 
+## M4 — Insert & placeholders
+
+- [ ] Insert button places snippet text at the cursor, replacing any selection
+- [ ] Insert into a table cell works
+- [ ] First insert of a snippet with `[Building Name]` prompts; the value then appears in the Placeholders tab
+- [ ] Second insert auto-fills without prompting
+- [ ] Placeholder values survive closing and reopening the document (doc settings round-trip)
+- [ ] Multi-select → Insert All inserts snippets in list order
+- [ ] Blank dialog field keeps the literal `[token]` in the inserted text
+- [ ] `\[escaped\]` text inserts as `[escaped]` and never prompts
+
 ## Later milestones (placeholders — filled in as features land)
 
-- Save/insert round-trip (M2)
-- Insert into a table cell (M4)
-- Placeholder prompt on first insert; auto-fill on second insert; values survive task-pane reload (M4)
 - Queue persists after closing/reopening the document (M5)
 - Native drag-drop behavior notes per platform (M5)
 - Import/export round-trip between two machines (M6)

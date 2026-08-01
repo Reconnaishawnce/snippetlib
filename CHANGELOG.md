@@ -4,6 +4,14 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### M4 — Insert & placeholders (2026-08-01)
+
+- Insert at cursor (§6): per-snippet Insert button in browse and search, plus multi-select checkboxes with **Insert All** in list order (§7.5).
+- Placeholder engine (§7.6) as a pure, heavily-tested module: `[Placeholder Name]` parsing, key normalization (trim/collapse/case-insensitive), first-seen display casing, value substitution, and the `\[escaped\]` escape hatch (stripped on insert).
+- Insert-time resolution: known values substitute automatically; unknown placeholders raise one dialog for all of them — values entered are remembered **per document** (stored in the Word file's settings, zod-validated on read, saves debounced 2 s) so later inserts auto-fill; blank fields keep the literal token for manual handling.
+- Placeholders tab: editable table of this document's captured values with a "future inserts only" note; values can be forgotten per key.
+- Dev experience: the blank-pane watchdog now probes the dev server and reloads only when it can actually respond (up to ~90 s), fixing the slow-first-open/2-refreshes cycle.
+
 ### M3 — Tags & search (2026-08-01)
 
 - Tag chip input (§7.4) in the save/edit form: ranked autocomplete (usage count desc), Enter/comma commits, new-tag confirmation with **Yes / No / Stop showing this** (persisted preference). New tags are created at save time, so cancelling the form leaves no orphans.
