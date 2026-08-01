@@ -6,6 +6,8 @@ import { create } from "zustand";
 import type { Folder, Library } from "../../models/entities";
 import { getStorage } from "./storage";
 import { useSnippetStore } from "./snippetStore";
+import { useSearchStore } from "./searchStore";
+import { useTagStore } from "./tagStore";
 
 /** The switcher's pseudo-entries alongside real library ids (§7.1). */
 export type LibraryScope =
@@ -71,6 +73,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       selectedFolderId: null,
     });
     await useSnippetStore.getState().loadForScope(scope);
+    await useTagStore.getState().load();
+    await useSearchStore.getState().rebuild();
   },
 
   async selectScope(scope) {

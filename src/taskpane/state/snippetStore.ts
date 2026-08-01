@@ -5,6 +5,10 @@
 import { create } from "zustand";
 import type { Snippet, SnippetMembership } from "../../models/entities";
 import { getStorage } from "./storage";
+import { useSearchStore } from "./searchStore";
+// Circular with tagStore at module level only — both stores touch each other
+// strictly inside actions, never during module initialization.
+import { useTagStore } from "./tagStore";
 import type { LibraryScope } from "./libraryStore";
 
 export interface SnippetDraft {
@@ -56,17 +60,23 @@ export const useSnippetStore = create<SnippetState>((set, get) => ({
   async saveNew(draft) {
     const snippet = await getStorage().createSnippet(draft);
     await get().reload();
+    await useSearchStore.getState().upsertSnippet(snippet);
+    await useTagStore.getState().load(); // usage counts changed
     return snippet;
   },
 
   async saveEdit(snippet) {
     const updated = await getStorage().updateSnippet(snippet);
     await get().reload();
+    await useSearchStore.getState().upsertSnippet(updated);
+    await useTagStore.getState().load(); // usage counts changed
     return updated;
   },
 
   async remove(id) {
     await getStorage().deleteSnippet(id);
     await get().reload();
+    useSearchStore.getState().removeSnippet(id);
+    await useTagStore.getState().load(); // usage counts changed
   },
 }));
