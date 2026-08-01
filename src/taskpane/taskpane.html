@@ -16,36 +16,65 @@
   <body style="width: 100%; height: 100%; margin: 0; padding: 0">
     <div id="container"></div>
     <script>
-      // Blank-pane watchdog: Word sometimes opens the pane before the app can
-      // boot (dev-server races, stale Office cache). If nothing has rendered
-      // after 4s, reload — at most twice, so a real failure still surfaces.
+      // Blank-pane watchdog. Word opens the pane immediately, but the first
+      // dev-server compile can take 20-30s (and Office's cache can serve a dud).
+      // Instead of blind timed reloads, probe the server: only reload once it
+      // actually answers, and keep watching for up to ~90s before giving up.
       (function () {
-        var KEY = "reportsnips-reload-tries";
-        function tries() {
+        var KEY = "reportsnips-reload-count";
+        var MAX_RELOADS = 6;
+        var PROBE_EVERY_MS = 3000;
+        var GIVE_UP_MS = 90000;
+        var started = Date.now();
+
+        function reloads() {
           try {
             return Number(sessionStorage.getItem(KEY) || "0");
           } catch (e) {
-            return 2; // storage unavailable — never auto-reload
+            return MAX_RELOADS; // storage unavailable — never auto-reload
           }
         }
-        setTimeout(function () {
+        function rendered() {
           var container = document.getElementById("container");
-          if (!container) return;
-          if (container.childElementCount > 0) {
+          return !!(container && container.childElementCount > 0);
+        }
+
+        function tick() {
+          if (rendered()) {
             try {
               sessionStorage.removeItem(KEY);
             } catch (e) {
               /* ignore */
             }
-          } else if (tries() < 2) {
-            try {
-              sessionStorage.setItem(KEY, String(tries() + 1));
-            } catch (e) {
-              /* ignore */
-            }
-            location.reload();
+            return; // app is up — watchdog done
           }
-        }, 4000);
+          if (Date.now() - started > GIVE_UP_MS || reloads() >= MAX_RELOADS) {
+            return; // stop; leave any real error visible
+          }
+          // Reload only when the server can actually serve us.
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", window.location.pathname + "?watchdog=" + Date.now(), true);
+          xhr.timeout = 2500;
+          xhr.onload = function () {
+            if (rendered()) return;
+            if (xhr.status >= 200 && xhr.status < 400) {
+              try {
+                sessionStorage.setItem(KEY, String(reloads() + 1));
+              } catch (e) {
+                /* ignore */
+              }
+              window.location.reload();
+            } else {
+              setTimeout(tick, PROBE_EVERY_MS);
+            }
+          };
+          xhr.onerror = xhr.ontimeout = function () {
+            setTimeout(tick, PROBE_EVERY_MS); // server not ready — keep waiting
+          };
+          xhr.send();
+        }
+
+        setTimeout(tick, 4000);
       })();
     </script>
   </body>
