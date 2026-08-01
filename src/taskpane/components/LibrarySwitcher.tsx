@@ -1,18 +1,20 @@
 /** Library switcher dropdown + manage menu (§7.1). */
 import * as React from "react";
 import {
+  Button,
   Dropdown,
   Menu,
-  MenuButton,
   MenuItem,
   MenuList,
   MenuPopover,
   MenuTrigger,
   Option,
   OptionGroup,
+  Tooltip,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
+import { Settings20Regular } from "@fluentui/react-icons";
 import { useLibraryStore, type LibraryScope } from "../state/libraryStore";
 import { NameDialog, ConfirmDialog } from "./dialogs";
 
@@ -92,7 +94,13 @@ export const LibrarySwitcher: React.FC = () => {
       </Dropdown>
       <Menu>
         <MenuTrigger disableButtonEnhancement>
-          <MenuButton appearance="subtle" aria-label="Manage libraries" />
+          <Tooltip content="Manage libraries" relationship="label">
+            <Button
+              appearance="subtle"
+              icon={<Settings20Regular />}
+              aria-label="Manage libraries"
+            />
+          </Tooltip>
         </MenuTrigger>
         <MenuPopover>
           <MenuList>

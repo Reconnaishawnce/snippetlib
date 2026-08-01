@@ -15,5 +15,38 @@
 
   <body style="width: 100%; height: 100%; margin: 0; padding: 0">
     <div id="container"></div>
+    <script>
+      // Blank-pane watchdog: Word sometimes opens the pane before the app can
+      // boot (dev-server races, stale Office cache). If nothing has rendered
+      // after 4s, reload — at most twice, so a real failure still surfaces.
+      (function () {
+        var KEY = "reportsnips-reload-tries";
+        function tries() {
+          try {
+            return Number(sessionStorage.getItem(KEY) || "0");
+          } catch (e) {
+            return 2; // storage unavailable — never auto-reload
+          }
+        }
+        setTimeout(function () {
+          var container = document.getElementById("container");
+          if (!container) return;
+          if (container.childElementCount > 0) {
+            try {
+              sessionStorage.removeItem(KEY);
+            } catch (e) {
+              /* ignore */
+            }
+          } else if (tries() < 2) {
+            try {
+              sessionStorage.setItem(KEY, String(tries() + 1));
+            } catch (e) {
+              /* ignore */
+            }
+            location.reload();
+          }
+        }, 4000);
+      })();
+    </script>
   </body>
 </html>
