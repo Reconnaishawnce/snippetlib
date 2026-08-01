@@ -288,6 +288,11 @@ export class IndexedDbProvider implements StorageProvider {
     return rows.map(toSnippet);
   }
 
+  async getSnippetsByTag(tagId: string): Promise<Snippet[]> {
+    const rows = await this.db.snippets.where("tagIds").equals(tagId).toArray();
+    return rows.map(toSnippet);
+  }
+
   async getUnassignedSnippets(): Promise<Snippet[]> {
     // Multi-entry indexes cannot match empty arrays, so filter over the table.
     const rows = await this.db.snippets.filter((row) => row.memberships.length === 0).toArray();

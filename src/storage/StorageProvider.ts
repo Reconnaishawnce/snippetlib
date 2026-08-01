@@ -75,6 +75,7 @@ export interface StorageProvider {
   getSnippet(id: string): Promise<Snippet | undefined>;
   getAllSnippets(): Promise<Snippet[]>;
   getSnippetsByLibrary(libraryId: string): Promise<Snippet[]>;
+  getSnippetsByTag(tagId: string): Promise<Snippet[]>;
   /** Snippets with zero memberships — the Unassigned Backlog. */
   getUnassignedSnippets(): Promise<Snippet[]>;
   updateSnippet(snippet: Snippet): Promise<Snippet>;
