@@ -4,6 +4,12 @@ Lightweight ADRs for deviations from or clarifications to `TECH_PLAN.md`. Newest
 
 ---
 
+## ADR-004: Commit directly to `main` — no feature branches
+
+**Date:** 2026-08-01 · **Milestone:** M0
+
+The plan (§12) proposed trunk-based development with short-lived feature branches and PRs. The project owner has directed that **all work is committed and pushed directly to `main`, never to branches**. This supersedes §12's branching convention; everything else in §12 (Conventional Commits, semver, docs) stands. Consequence: the CI workflow treats pushes to `main` as the primary trigger (checks + Pages deploy), and there is no PR gate — the local check suite must pass before every push.
+
 ## ADR-003: Manifest declares WordApi 1.3 in `<Requirements>`
 
 **Date:** 2026-08-01 · **Milestone:** M0
