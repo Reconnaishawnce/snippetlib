@@ -96,6 +96,16 @@ module.exports = async (env, options) => {
     ],
     devServer: {
       hot: true,
+      client: {
+        overlay: {
+          errors: true,
+          warnings: false,
+          // Benign browser noise triggered by Fluent UI popup positioning —
+          // not an app error, so keep the dev overlay out of the way.
+          runtimeErrors: (error) =>
+            !/ResizeObserver loop/.test(error && error.message ? error.message : ""),
+        },
+      },
       headers: {
         "Access-Control-Allow-Origin": "*",
       },
