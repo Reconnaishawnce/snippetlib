@@ -74,6 +74,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
   return (
     <div className={styles.root}>
       <Switch
+        label="Quick Save (skip the form when saving a selection)"
+        checked={prefs?.quickSaveMode ?? false}
+        onChange={(_, data) => void update({ quickSaveMode: Boolean(data.checked) })}
+      />
+      <Text size={200} className={styles.hint}>
+        With Quick Save on, Save Selection names the snippet from its first words and files it into
+        the folder you have open — with an Undo/Edit toast after.
+      </Text>
+      <Switch
         label="Confirm before creating a new tag"
         checked={prefs ? !prefs.suppressNewTagConfirm : true}
         onChange={(_, data) => void update({ suppressNewTagConfirm: !data.checked })}

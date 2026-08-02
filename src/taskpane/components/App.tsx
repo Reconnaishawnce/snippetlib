@@ -25,7 +25,7 @@ import {
   QuestionCircle20Regular,
   Settings20Regular,
 } from "@fluentui/react-icons";
-import type { Folder, Snippet } from "../../models/entities";
+import type { Folder, Snippet, SnippetMembership } from "../../models/entities";
 import { getSelectedText, insertText } from "../../office/documentIO";
 import type { ParsedPlaceholder } from "../../office/placeholderEngine";
 import { useLibraryStore } from "../state/libraryStore";
@@ -131,6 +131,8 @@ const App: React.FC = () => {
     onDone?: () => void;
   } | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
+  /** Last snippet saved via Quick Save — drives the Edit/Undo toast. */
+  const [quickSaved, setQuickSaved] = React.useState<Snippet | null>(null);
   const [importOpen, setImportOpen] = React.useState(false);
   const [historyFor, setHistoryFor] = React.useState<Snippet | null>(null);
   const [moveFor, setMoveFor] = React.useState<Snippet | null>(null);
@@ -195,6 +197,11 @@ const App: React.FC = () => {
   ) => {
     try {
       await insertText(buildInsertText(snippets, values));
+      // Frecency: every successful insert bumps useCount/lastUsedAt.
+      void useSnippetStore
+        .getState()
+        .recordUsage(snippets.map((s) => s.id))
+        .catch(() => undefined);
       onDone?.();
     } catch (e: unknown) {
       setError(`Insert failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -267,15 +274,30 @@ const App: React.FC = () => {
       setError("Select some text in your document first.");
       return;
     }
+    const memberships: SnippetMembership[] =
+      scope.kind === "library" ? [{ libraryId: scope.libraryId, folderId: selectedFolderId }] : [];
+    if (prefs?.quickSaveMode) {
+      // Quick Save (§7.3 ext): no form — auto-name, current folder, Edit/Undo toast.
+      try {
+        const snippet = await saveNew({
+          name: deriveDefaultName(selection),
+          content: selection,
+          memberships,
+          tagIds: [],
+        });
+        setQuickSaved(snippet);
+        await refreshBackupNudge();
+      } catch (e: unknown) {
+        setError(`Saving failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return;
+    }
     await openForm({
       mode: "create",
       initial: {
         name: deriveDefaultName(selection),
         content: selection,
-        memberships:
-          scope.kind === "library"
-            ? [{ libraryId: scope.libraryId, folderId: selectedFolderId }]
-            : [],
+        memberships,
         tagChips: [],
       },
     });
@@ -404,7 +426,45 @@ const App: React.FC = () => {
             />
           </MessageBar>
         )}
-        {backupDue && !notice && (
+        {quickSaved && (
+          <MessageBar intent="success">
+            <MessageBarBody>Saved &ldquo;{quickSaved.name}&rdquo;.</MessageBarBody>
+            <MessageBarActions
+              containerAction={
+                <Button
+                  appearance="transparent"
+                  icon={<Dismiss16Regular />}
+                  aria-label="Dismiss"
+                  onClick={() => setQuickSaved(null)}
+                />
+              }
+            >
+              <Button
+                appearance="secondary"
+                size="small"
+                onClick={() => {
+                  const snippet = quickSaved;
+                  setQuickSaved(null);
+                  onEdit(snippet);
+                }}
+              >
+                Edit…
+              </Button>
+              <Button
+                appearance="secondary"
+                size="small"
+                onClick={() => {
+                  const snippet = quickSaved;
+                  setQuickSaved(null);
+                  void useSnippetStore.getState().remove(snippet.id);
+                }}
+              >
+                Undo
+              </Button>
+            </MessageBarActions>
+          </MessageBar>
+        )}
+        {backupDue && !notice && !quickSaved && (
           <MessageBar intent="info">
             <MessageBarBody>
               Your snippet library hasn&apos;t been backed up recently.
