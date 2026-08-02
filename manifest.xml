@@ -62,6 +62,26 @@
               </Group>
             </OfficeTab>
           </ExtensionPoint>
+          <ExtensionPoint xsi:type="ContextMenu">
+            <OfficeMenu id="ContextMenuText">
+              <Control xsi:type="Button" id="ContextSaveButton">
+                <Label resid="ContextSave.Label"/>
+                <Supertip>
+                  <Title resid="ContextSave.Label"/>
+                  <Description resid="ContextSave.Tooltip"/>
+                </Supertip>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+                <Action xsi:type="ShowTaskpane">
+                  <TaskpaneId>ButtonId1</TaskpaneId>
+                  <SourceLocation resid="Taskpane.SaveUrl"/>
+                </Action>
+              </Control>
+            </OfficeMenu>
+          </ExtensionPoint>
         </DesktopFormFactor>
       </Host>
     </Hosts>
@@ -75,15 +95,18 @@
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/reconnaishawnce/snippetlib"/>
         <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
+        <bt:Url id="Taskpane.SaveUrl" DefaultValue="https://localhost:3000/taskpane.html?action=save-selection"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="ReportSnips loaded"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="ReportSnips"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="ReportSnips"/>
+        <bt:String id="ContextSave.Label" DefaultValue="Save to ReportSnips"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="ReportSnips loaded successfully. Go to the Home tab and click the ReportSnips button to open the snippet library."/>
         <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open the ReportSnips snippet library"/>
+        <bt:String id="ContextSave.Tooltip" DefaultValue="Save the selected text as a reusable snippet"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
