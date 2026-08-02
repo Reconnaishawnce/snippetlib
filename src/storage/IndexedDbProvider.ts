@@ -10,6 +10,8 @@ import type {
   Folder,
   ImportConflictPolicy,
   Library,
+  QueueTemplate,
+  QueueTemplateSection,
   Snippet,
   Tag,
 } from "../models/entities";
@@ -36,6 +38,12 @@ const DEFAULT_PREFS: AppPrefs = {
   enableDocDragDrop: true, // §7.7: implemented + flagged; Insert stays the contract
   quickSaveMode: false,
   browseSort: "name",
+  enableQueue: true,
+  enableFrecency: true,
+  staleReviewEnabled: false, // opt-in — no surprise alerts
+  staleEditedDays: 180,
+  staleUnusedDays: 90,
+  staleAlerts: true,
 };
 
 export interface IndexedDbProviderOptions {
@@ -52,6 +60,7 @@ class ReportSnipsDb extends Dexie {
   snippets!: Table<SnippetRow, string>;
   tags!: Table<TagRow, string>;
   prefs!: Table<PrefsRow, string>;
+  queueTemplates!: Table<QueueTemplate, string>;
 
   constructor(name: string, options: IndexedDbProviderOptions) {
     super(
@@ -67,6 +76,10 @@ class ReportSnipsDb extends Dexie {
       snippets: "id, *tagIds, *membershipLibraryIds",
       tags: "id, &nameLower, usageCount",
       prefs: "id",
+    });
+    // v2: queue templates (report-type checklists). Additive — no data migration.
+    this.version(2).stores({
+      queueTemplates: "id",
     });
   }
 }
@@ -93,6 +106,7 @@ function toSnippet(row: SnippetRow): Snippet {
     updatedAt: row.updatedAt,
     ...(row.useCount !== undefined ? { useCount: row.useCount } : {}),
     ...(row.lastUsedAt !== undefined ? { lastUsedAt: row.lastUsedAt } : {}),
+    ...(row.lastReviewedAt !== undefined ? { lastReviewedAt: row.lastReviewedAt } : {}),
   };
 }
 
@@ -354,6 +368,50 @@ export class IndexedDbProvider implements StorageProvider {
     });
   }
 
+  async markSnippetsReviewed(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+    const reviewedAt = nowIso();
+    // Like usage: not an edit — updatedAt and the export counter stay put.
+    await this.db.transaction("rw", this.db.snippets, async () => {
+      for (const id of ids) {
+        const row = await this.db.snippets.get(id);
+        if (row) {
+          await this.db.snippets.put({ ...row, lastReviewedAt: reviewedAt });
+        }
+      }
+    });
+  }
+
+  // ---- Queue templates ----
+
+  async getAllQueueTemplates(): Promise<QueueTemplate[]> {
+    const templates = await this.db.queueTemplates.toArray();
+    return templates.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async saveQueueTemplate(name: string, sections: QueueTemplateSection[]): Promise<QueueTemplate> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error("Template name cannot be empty.");
+    }
+    const timestamp = nowIso();
+    const template: QueueTemplate = {
+      id: newId(),
+      name: trimmed,
+      sections,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    await this.db.queueTemplates.add(template);
+    return template;
+  }
+
+  async deleteQueueTemplate(id: string): Promise<void> {
+    await this.db.queueTemplates.delete(id);
+  }
+
   // ---- Tags ----
 
   async createTag(name: string): Promise<Tag> {
@@ -437,6 +495,12 @@ export class IndexedDbProvider implements StorageProvider {
       enableDocDragDrop: row.enableDocDragDrop ?? true,
       quickSaveMode: row.quickSaveMode ?? false,
       browseSort: row.browseSort ?? "name",
+      enableQueue: row.enableQueue ?? true,
+      enableFrecency: row.enableFrecency ?? true,
+      staleReviewEnabled: row.staleReviewEnabled ?? false,
+      staleEditedDays: row.staleEditedDays ?? 180,
+      staleUnusedDays: row.staleUnusedDays ?? 90,
+      staleAlerts: row.staleAlerts ?? true,
     };
   }
 
@@ -621,7 +685,14 @@ export class IndexedDbProvider implements StorageProvider {
   async clearAll(): Promise<void> {
     await this.db.transaction(
       "rw",
-      [this.db.libraries, this.db.folders, this.db.snippets, this.db.tags, this.db.prefs],
+      [
+        this.db.libraries,
+        this.db.folders,
+        this.db.snippets,
+        this.db.tags,
+        this.db.prefs,
+        this.db.queueTemplates,
+      ],
       async () => {
         await Promise.all([
           this.db.libraries.clear(),
@@ -629,6 +700,7 @@ export class IndexedDbProvider implements StorageProvider {
           this.db.snippets.clear(),
           this.db.tags.clear(),
           this.db.prefs.clear(),
+          this.db.queueTemplates.clear(),
         ]);
       }
     );

@@ -2,7 +2,12 @@
  * Pure queue reducers (§7.7). Every function returns a new QueueState; no
  * storage, Office, or React dependencies — fully unit-tested.
  */
-import type { QueueItem, QueueSection, QueueState } from "../../models/entities";
+import type {
+  QueueItem,
+  QueueSection,
+  QueueState,
+  QueueTemplateSection,
+} from "../../models/entities";
 import { newId } from "../../models/ids";
 
 export const DEFAULT_SECTION_NAME = "Queue";
@@ -171,4 +176,34 @@ export function moveItem(
  * renders dangling items as "(snippet deleted)" with a remove affordance (§7.7). */
 export function itemsOfSection(state: QueueState, sectionId: string): QueueItem[] {
   return state.sections.find((s) => s.id === sectionId)?.items ?? [];
+}
+
+/** The current queue as a reusable template shape (section names + snippet ids). */
+export function toTemplateSections(state: QueueState): QueueTemplateSection[] {
+  return displaySections(state).map((section) => ({
+    name: section.name,
+    snippetIds: [...section.items]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((item) => item.snippetId),
+  }));
+}
+
+/**
+ * Appends a template's sections to the queue (fresh ids, nothing inserted).
+ * Appending — not replacing — so loading into a working document is safe.
+ */
+export function appendTemplate(state: QueueState, sections: QueueTemplateSection[]): QueueState {
+  const base = Math.max(0, ...state.sections.map((s) => s.sortOrder + 1));
+  const added = sections.map((section, i) => ({
+    id: newId(),
+    name: section.name,
+    sortOrder: base + i,
+    items: section.snippetIds.map((snippetId, j) => ({
+      id: newId(),
+      snippetId,
+      sortOrder: j,
+      inserted: false,
+    })),
+  }));
+  return { sections: [...state.sections, ...added] };
 }

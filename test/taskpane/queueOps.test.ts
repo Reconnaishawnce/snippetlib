@@ -3,6 +3,8 @@ import type { QueueState } from "../../src/models/entities";
 import {
   addSection,
   addToQueue,
+  appendTemplate,
+  toTemplateSections,
   clearInserted,
   deleteSection,
   displaySections,
@@ -131,5 +133,35 @@ describe("removeItem", () => {
     const next = removeItem(state, a);
     expect(next.sections[0]!.items.map((i) => i.id)).toEqual([b]);
     expect(next.sections[0]!.items[0]!.sortOrder).toBe(0);
+  });
+});
+
+describe("queue templates ops", () => {
+  it("toTemplateSections captures section names and snippet ids in order", () => {
+    let state = emptyQueue();
+    state = addSection(state, "Findings");
+    const sectionId = state.sections[0]!.id;
+    state = addToQueue(state, "snip-b", sectionId).state;
+    state = addToQueue(state, "snip-a", sectionId).state;
+    expect(toTemplateSections(state)).toEqual([
+      { name: "Findings", snippetIds: ["snip-b", "snip-a"] },
+    ]);
+  });
+
+  it("appendTemplate appends fresh sections with nothing inserted", () => {
+    let state = emptyQueue();
+    state = addSection(state, "Existing");
+    const next = appendTemplate(state, [
+      { name: "Intro", snippetIds: ["s1"] },
+      { name: "Wrap-up", snippetIds: ["s2", "s3"] },
+    ]);
+    expect(next.sections.map((s) => s.name)).toEqual(["Existing", "Intro", "Wrap-up"]);
+    const intro = next.sections[1]!;
+    expect(intro.items.map((i) => i.snippetId)).toEqual(["s1"]);
+    expect(intro.items.every((i) => !i.inserted)).toBe(true);
+    // Fresh ids — loading the same template twice must not collide.
+    const again = appendTemplate(next, [{ name: "Intro", snippetIds: ["s1"] }]);
+    const ids = again.sections.flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

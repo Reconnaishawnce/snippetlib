@@ -53,6 +53,7 @@ export const snippetSchema = z.object({
   updatedAt: isoDateString,
   useCount: z.number().int().nonnegative().optional(),
   lastUsedAt: isoDateString.optional(),
+  lastReviewedAt: isoDateString.optional(),
 });
 
 export const tagSchema = z.object({
@@ -71,6 +72,25 @@ export const appPrefsSchema = z.object({
   enableDocDragDrop: z.boolean(),
   quickSaveMode: z.boolean(),
   browseSort: z.enum(["name", "recent", "most-used", "newest"]),
+  enableQueue: z.boolean(),
+  enableFrecency: z.boolean(),
+  staleReviewEnabled: z.boolean(),
+  staleEditedDays: z.number().int().positive(),
+  staleUnusedDays: z.number().int().positive(),
+  staleAlerts: z.boolean(),
+});
+
+export const queueTemplateSectionSchema = z.object({
+  name: z.string(),
+  snippetIds: z.array(id),
+});
+
+export const queueTemplateSchema = z.object({
+  id,
+  name: z.string().min(1),
+  sections: z.array(queueTemplateSectionSchema),
+  createdAt: isoDateString,
+  updatedAt: isoDateString,
 });
 
 /** ---- Document-scoped state (validated on every doc-settings read) ---- */

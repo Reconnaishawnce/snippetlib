@@ -51,6 +51,8 @@ export interface Snippet {
   // fields existed lack them; absent means never inserted.
   useCount?: number;
   lastUsedAt?: string;
+  /** Set by "Looks fine" in the stale review — resets the staleness clock without an edit. */
+  lastReviewedAt?: string;
 }
 
 /** Tags are global across all libraries. */
@@ -101,6 +103,37 @@ export interface AppPrefs {
   /** Quick Save: Save Selection skips the form — auto-name, current folder, undo toast. */
   quickSaveMode: boolean;
   browseSort: BrowseSort;
+  // Feature toggles — every non-core feature can be switched off to keep the
+  // pane simple. All default on (except stale review, which is opt-in).
+  /** Queue feature: the Queue tab, Q buttons, and Add-to-Queue menu items. */
+  enableQueue: boolean;
+  /** Usage tracking + the Recently/Most used sorts. Off: no recording, name sort only. */
+  enableFrecency: boolean;
+  // Stale-snippet review (opt-in): flag snippets not edited in `staleEditedDays`
+  // OR not used in `staleUnusedDays`.
+  staleReviewEnabled: boolean;
+  staleEditedDays: number;
+  staleUnusedDays: number;
+  /** true: show a banner when stale snippets exist; false: manual review from Settings only. */
+  staleAlerts: boolean;
+}
+
+/**
+ * A saved queue layout ("report-type checklist"): named sections with the
+ * snippets that belong in them. App-scoped (IndexedDB), loadable into any
+ * document's queue. Not part of the export bundle (v0.x).
+ */
+export interface QueueTemplate {
+  id: string;
+  name: string;
+  sections: QueueTemplateSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QueueTemplateSection {
+  name: string;
+  snippetIds: string[];
 }
 
 /** ---- Import/export bundle (§7.8) — the sharing currency and backup format ---- */

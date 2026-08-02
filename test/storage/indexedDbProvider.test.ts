@@ -262,6 +262,12 @@ describe("prefs", () => {
       enableDocDragDrop: true,
       quickSaveMode: false,
       browseSort: "name",
+      enableQueue: true,
+      enableFrecency: true,
+      staleReviewEnabled: false,
+      staleEditedDays: 180,
+      staleUnusedDays: 90,
+      staleAlerts: true,
     });
 
     const updated = await storage.updatePrefs({ suppressNewTagConfirm: true });
@@ -299,6 +305,40 @@ describe("recordSnippetUsage", () => {
     expect(after?.lastUsedAt).toBeTruthy();
     expect(after?.updatedAt).toBe(snippet.updatedAt);
     expect((await storage.getPrefs()).changesSinceExport).toBe(changesBefore);
+  });
+});
+
+describe("markSnippetsReviewed", () => {
+  it("stamps lastReviewedAt without touching updatedAt", async () => {
+    const storage = makeProvider();
+    const snippet = await storage.createSnippet({
+      name: "S",
+      content: "x",
+      tagIds: [],
+      memberships: [],
+    });
+    await storage.markSnippetsReviewed([snippet.id, "missing-id"]);
+    const after = await storage.getSnippet(snippet.id);
+    expect(after?.lastReviewedAt).toBeTruthy();
+    expect(after?.updatedAt).toBe(snippet.updatedAt);
+  });
+});
+
+describe("queue templates", () => {
+  it("saves, lists (sorted by name), and deletes templates", async () => {
+    const storage = makeProvider();
+    const b = await storage.saveQueueTemplate("Beta report", [
+      { name: "Findings", snippetIds: ["s1", "s2"] },
+    ]);
+    await storage.saveQueueTemplate("Alpha report", [{ name: "Intro", snippetIds: [] }]);
+
+    const all = await storage.getAllQueueTemplates();
+    expect(all.map((t) => t.name)).toEqual(["Alpha report", "Beta report"]);
+    expect(all[1]?.sections).toEqual([{ name: "Findings", snippetIds: ["s1", "s2"] }]);
+
+    await storage.deleteQueueTemplate(b.id);
+    expect((await storage.getAllQueueTemplates()).map((t) => t.name)).toEqual(["Alpha report"]);
+    await expect(storage.saveQueueTemplate("   ", [])).rejects.toThrow(/empty/i);
   });
 });
 

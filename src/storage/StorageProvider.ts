@@ -9,6 +9,8 @@ import type {
   Folder,
   ImportConflictPolicy,
   Library,
+  QueueTemplate,
+  QueueTemplateSection,
   Snippet,
   SnippetMembership,
   Tag,
@@ -85,6 +87,13 @@ export interface StorageProvider {
    * touch updatedAt — "edited" and "used" are tracked separately.
    */
   recordSnippetUsage(ids: string[]): Promise<void>;
+  /** Stale review "Looks fine": stamps lastReviewedAt without touching updatedAt. */
+  markSnippetsReviewed(ids: string[]): Promise<void>;
+
+  // ---- Queue templates (report-type checklists) ----
+  getAllQueueTemplates(): Promise<QueueTemplate[]>;
+  saveQueueTemplate(name: string, sections: QueueTemplateSection[]): Promise<QueueTemplate>;
+  deleteQueueTemplate(id: string): Promise<void>;
 
   // ---- Tags ----
   /** Throws if a tag with the same name (case-insensitive) already exists. */

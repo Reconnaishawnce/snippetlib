@@ -38,6 +38,8 @@ export interface SnippetState {
   remove(id: string): Promise<void>;
   /** Bump usage stats after an insert (frecency sorting; not an edit). */
   recordUsage(ids: string[]): Promise<void>;
+  /** Stale review "Looks fine" — resets the staleness clock without an edit. */
+  markReviewed(ids: string[]): Promise<void>;
 }
 
 async function fetchForScope(scope: LibraryScope): Promise<Snippet[]> {
@@ -129,5 +131,10 @@ export const useSnippetStore = create<SnippetState>((set, get) => ({
   async recordUsage(ids) {
     await getStorage().recordSnippetUsage(ids);
     await get().reload(); // usage-based sorts see fresh counts
+  },
+
+  async markReviewed(ids) {
+    await getStorage().markSnippetsReviewed(ids);
+    await get().reload();
   },
 }));
