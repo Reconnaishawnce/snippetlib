@@ -18,6 +18,8 @@ export interface SnippetDraft {
   memberships: SnippetMembership[];
 }
 
+export const HISTORY_LIMIT = 3;
+
 export interface SnippetState {
   /** Snippets for the current scope (library / all / backlog). */
   snippets: Snippet[];
@@ -27,6 +29,12 @@ export interface SnippetState {
   reload(): Promise<void>;
   saveNew(draft: SnippetDraft): Promise<Snippet>;
   saveEdit(snippet: Snippet): Promise<Snippet>;
+  /** Update, pushing the previous name/content onto history (cap 3, §7.9). */
+  updateWithHistory(previous: Snippet, changes: SnippetDraft): Promise<Snippet>;
+  /** New snippet from an edit — same tags/memberships, empty history (§7.9). */
+  saveAsNew(changes: SnippetDraft): Promise<Snippet>;
+  /** Restore a revision; the current state is pushed onto history first (§7.9). */
+  restoreRevision(snippet: Snippet, revisionIndex: number): Promise<Snippet>;
   remove(id: string): Promise<void>;
 }
 
@@ -71,6 +79,42 @@ export const useSnippetStore = create<SnippetState>((set, get) => ({
     await useSearchStore.getState().upsertSnippet(updated);
     await useTagStore.getState().load(); // usage counts changed
     return updated;
+  },
+
+  async updateWithHistory(previous, changes) {
+    const revision = {
+      name: previous.name,
+      content: previous.content,
+      savedAt: new Date().toISOString(),
+    };
+    return get().saveEdit({
+      ...previous,
+      ...changes,
+      history: [revision, ...previous.history].slice(0, HISTORY_LIMIT),
+    });
+  },
+
+  async saveAsNew(changes) {
+    return get().saveNew(changes);
+  },
+
+  async restoreRevision(snippet, revisionIndex) {
+    const revision = snippet.history[revisionIndex];
+    if (!revision) {
+      throw new Error("That revision no longer exists.");
+    }
+    const current = {
+      name: snippet.name,
+      content: snippet.content,
+      savedAt: new Date().toISOString(),
+    };
+    const history = snippet.history.filter((_, i) => i !== revisionIndex);
+    return get().saveEdit({
+      ...snippet,
+      name: revision.name,
+      content: revision.content,
+      history: [current, ...history].slice(0, HISTORY_LIMIT),
+    });
   },
 
   async remove(id) {
