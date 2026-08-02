@@ -592,6 +592,22 @@ export class IndexedDbProvider implements StorageProvider {
     return result;
   }
 
+  async clearAll(): Promise<void> {
+    await this.db.transaction(
+      "rw",
+      [this.db.libraries, this.db.folders, this.db.snippets, this.db.tags, this.db.prefs],
+      async () => {
+        await Promise.all([
+          this.db.libraries.clear(),
+          this.db.folders.clear(),
+          this.db.snippets.clear(),
+          this.db.tags.clear(),
+          this.db.prefs.clear(),
+        ]);
+      }
+    );
+  }
+
   /** Insert a fully-formed snippet (import path) keeping counts/indexes right. */
   private async insertSnippetRow(snippet: Snippet): Promise<void> {
     await this.db.transaction("rw", [this.db.snippets, this.db.tags, this.db.prefs], async () => {

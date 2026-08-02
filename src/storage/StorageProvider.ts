@@ -100,4 +100,7 @@ export interface StorageProvider {
   // ---- Import / export (bundle format §7.8) ----
   exportAll(): Promise<ExportBundle>;
   importBundle(bundle: ExportBundle, policy: ImportConflictPolicy): Promise<ImportResult>;
+
+  /** Deletes everything — libraries, folders, snippets, tags, prefs (§7.10). */
+  clearAll(): Promise<void>;
 }
