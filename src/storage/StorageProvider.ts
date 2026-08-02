@@ -80,6 +80,11 @@ export interface StorageProvider {
   getUnassignedSnippets(): Promise<Snippet[]>;
   updateSnippet(snippet: Snippet): Promise<Snippet>;
   deleteSnippet(id: string): Promise<void>;
+  /**
+   * Bumps useCount and lastUsedAt on each snippet after an insert. Does NOT
+   * touch updatedAt — "edited" and "used" are tracked separately.
+   */
+  recordSnippetUsage(ids: string[]): Promise<void>;
 
   // ---- Tags ----
   /** Throws if a tag with the same name (case-insensitive) already exists. */

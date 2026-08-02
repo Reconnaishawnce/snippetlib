@@ -260,6 +260,8 @@ describe("prefs", () => {
       lastExportAt: null,
       changesSinceExport: 0,
       enableDocDragDrop: true,
+      quickSaveMode: false,
+      browseSort: "name",
     });
 
     const updated = await storage.updatePrefs({ suppressNewTagConfirm: true });
@@ -275,6 +277,28 @@ describe("prefs", () => {
     await storage.updateSnippet({ ...snippet, content: "y" });
     await storage.deleteSnippet(snippet.id);
     expect((await storage.getPrefs()).changesSinceExport).toBe(3);
+  });
+});
+
+describe("recordSnippetUsage", () => {
+  it("bumps useCount and lastUsedAt without touching updatedAt or the export counter", async () => {
+    const storage = makeProvider();
+    const snippet = await storage.createSnippet({
+      name: "S",
+      content: "x",
+      tagIds: [],
+      memberships: [],
+    });
+    const changesBefore = (await storage.getPrefs()).changesSinceExport;
+
+    await storage.recordSnippetUsage([snippet.id]);
+    await storage.recordSnippetUsage([snippet.id, "missing-id"]);
+
+    const after = await storage.getSnippet(snippet.id);
+    expect(after?.useCount).toBe(2);
+    expect(after?.lastUsedAt).toBeTruthy();
+    expect(after?.updatedAt).toBe(snippet.updatedAt);
+    expect((await storage.getPrefs()).changesSinceExport).toBe(changesBefore);
   });
 });
 

@@ -51,6 +51,8 @@ export const snippetSchema = z.object({
   history: z.array(snippetRevisionSchema).max(3),
   createdAt: isoDateString,
   updatedAt: isoDateString,
+  useCount: z.number().int().nonnegative().optional(),
+  lastUsedAt: isoDateString.optional(),
 });
 
 export const tagSchema = z.object({
@@ -67,6 +69,8 @@ export const appPrefsSchema = z.object({
   lastExportAt: isoDateString.nullable(),
   changesSinceExport: z.number().int().nonnegative(),
   enableDocDragDrop: z.boolean(),
+  quickSaveMode: z.boolean(),
+  browseSort: z.enum(["name", "recent", "most-used", "newest"]),
 });
 
 /** ---- Document-scoped state (validated on every doc-settings read) ---- */

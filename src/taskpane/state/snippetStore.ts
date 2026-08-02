@@ -36,6 +36,8 @@ export interface SnippetState {
   /** Restore a revision; the current state is pushed onto history first (§7.9). */
   restoreRevision(snippet: Snippet, revisionIndex: number): Promise<Snippet>;
   remove(id: string): Promise<void>;
+  /** Bump usage stats after an insert (frecency sorting; not an edit). */
+  recordUsage(ids: string[]): Promise<void>;
 }
 
 async function fetchForScope(scope: LibraryScope): Promise<Snippet[]> {
@@ -122,5 +124,10 @@ export const useSnippetStore = create<SnippetState>((set, get) => ({
     await get().reload();
     useSearchStore.getState().removeSnippet(id);
     await useTagStore.getState().load(); // usage counts changed
+  },
+
+  async recordUsage(ids) {
+    await getStorage().recordSnippetUsage(ids);
+    await get().reload(); // usage-based sorts see fresh counts
   },
 }));

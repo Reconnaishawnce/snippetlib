@@ -47,6 +47,10 @@ export interface Snippet {
   history: SnippetRevision[]; // most recent first, max length 3
   createdAt: string;
   updatedAt: string;
+  // Usage tracking for frecency sorting. Optional: rows written before these
+  // fields existed lack them; absent means never inserted.
+  useCount?: number;
+  lastUsedAt?: string;
 }
 
 /** Tags are global across all libraries. */
@@ -83,6 +87,10 @@ export interface QueueItem {
 }
 
 /** ---- App-scoped preferences (IndexedDB) ---- */
+
+/** Browse-list sort order. "recent"/"most-used" rank never-inserted snippets last. */
+export type BrowseSort = "name" | "recent" | "most-used" | "newest";
+
 export interface AppPrefs {
   activeLibraryId: string | null; // null = "All libraries" view
   suppressNewTagConfirm: boolean; // "Stop Showing This"
@@ -90,6 +98,9 @@ export interface AppPrefs {
   changesSinceExport: number;
   /** Feature flag (§7.7): native drag from queue into the document. */
   enableDocDragDrop: boolean;
+  /** Quick Save: Save Selection skips the form — auto-name, current folder, undo toast. */
+  quickSaveMode: boolean;
+  browseSort: BrowseSort;
 }
 
 /** ---- Import/export bundle (§7.8) — the sharing currency and backup format ---- */

@@ -15,10 +15,17 @@ export async function getSelectedText(): Promise<string> {
   });
 }
 
-/** Inserts plain text at the cursor, replacing any selection (§6). */
+/**
+ * Inserts plain text at the cursor, replacing any selection (§6). A trailing
+ * space is appended and the cursor lands after it, so consecutive inserts
+ * chain naturally instead of stacking on top of each other.
+ */
 export async function insertText(text: string): Promise<void> {
   await Word.run(async (context) => {
-    context.document.getSelection().insertText(text, Word.InsertLocation.replace);
+    const range = context.document
+      .getSelection()
+      .insertText(text + " ", Word.InsertLocation.replace);
+    range.select(Word.SelectionMode.end);
     await context.sync();
   });
 }

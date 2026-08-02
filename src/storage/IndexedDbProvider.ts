@@ -34,6 +34,8 @@ const DEFAULT_PREFS: AppPrefs = {
   lastExportAt: null,
   changesSinceExport: 0,
   enableDocDragDrop: true, // §7.7: implemented + flagged; Insert stays the contract
+  quickSaveMode: false,
+  browseSort: "name",
 };
 
 export interface IndexedDbProviderOptions {
@@ -89,6 +91,8 @@ function toSnippet(row: SnippetRow): Snippet {
     history: row.history,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    ...(row.useCount !== undefined ? { useCount: row.useCount } : {}),
+    ...(row.lastUsedAt !== undefined ? { lastUsedAt: row.lastUsedAt } : {}),
   };
 }
 
@@ -330,6 +334,26 @@ export class IndexedDbProvider implements StorageProvider {
     });
   }
 
+  async recordSnippetUsage(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+    const usedAt = nowIso();
+    // Not an edit: updatedAt and the changes-since-export counter stay put.
+    await this.db.transaction("rw", this.db.snippets, async () => {
+      for (const id of ids) {
+        const row = await this.db.snippets.get(id);
+        if (row) {
+          await this.db.snippets.put({
+            ...row,
+            useCount: (row.useCount ?? 0) + 1,
+            lastUsedAt: usedAt,
+          });
+        }
+      }
+    });
+  }
+
   // ---- Tags ----
 
   async createTag(name: string): Promise<Tag> {
@@ -411,6 +435,8 @@ export class IndexedDbProvider implements StorageProvider {
       changesSinceExport: row.changesSinceExport,
       // Rows written before the flag existed default it on.
       enableDocDragDrop: row.enableDocDragDrop ?? true,
+      quickSaveMode: row.quickSaveMode ?? false,
+      browseSort: row.browseSort ?? "name",
     };
   }
 
