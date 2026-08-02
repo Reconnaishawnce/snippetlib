@@ -309,9 +309,16 @@ describe("exportAll", () => {
     expect(Object.keys(bundle.tags[0]!)).not.toContain("nameLower");
   });
 
-  it("importBundle is a typed seam that reports it lands in M6", async () => {
+  it("importing an empty bundle is a no-op", async () => {
     const storage = makeProvider();
     const bundle = await storage.exportAll();
-    await expect(storage.importBundle(bundle, "keep-both")).rejects.toThrow(/M6/);
+    expect(await storage.importBundle(bundle, "keep-both")).toEqual({
+      snippetsAdded: 0,
+      snippetsUpdated: 0,
+      snippetsCopied: 0,
+      tagsAdded: 0,
+      librariesAdded: 0,
+      foldersAdded: 0,
+    });
   });
 });

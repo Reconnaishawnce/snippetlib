@@ -441,11 +441,167 @@ export class IndexedDbProvider implements StorageProvider {
     );
   }
 
-  // Import lands in M6 (§9) — the contract exists now so stores/UI never
-  // need to change when it does.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  importBundle(_bundle: ExportBundle, _policy: ImportConflictPolicy): Promise<ImportResult> {
-    return Promise.reject(new Error("importBundle is not implemented until M6."));
+  /**
+   * Merge a validated bundle (§7.8). Libraries and tags match by
+   * case-insensitive name; folder paths are reconstructed by name within the
+   * target library (missing folders created). Snippets match by id and follow
+   * the conflict policy; "keep-both" imports a copy suffixed " (imported)".
+   */
+  async importBundle(bundle: ExportBundle, policy: ImportConflictPolicy): Promise<ImportResult> {
+    const result: ImportResult = {
+      snippetsAdded: 0,
+      snippetsUpdated: 0,
+      snippetsCopied: 0,
+      tagsAdded: 0,
+      librariesAdded: 0,
+      foldersAdded: 0,
+    };
+
+    // Libraries: bundle id → local id, by name match or creation.
+    const localLibraries = await this.getAllLibraries();
+    const librariesByName = new Map(localLibraries.map((l) => [l.name.toLowerCase(), l]));
+    const libraryMap = new Map<string, string>();
+    for (const library of bundle.libraries) {
+      const existing = librariesByName.get(library.name.toLowerCase());
+      if (existing) {
+        libraryMap.set(library.id, existing.id);
+      } else {
+        const created = await this.createLibrary({
+          name: library.name,
+          ...(library.description !== undefined ? { description: library.description } : {}),
+        });
+        librariesByName.set(created.name.toLowerCase(), created);
+        libraryMap.set(library.id, created.id);
+        result.librariesAdded += 1;
+      }
+    }
+
+    // Folder name paths within the bundle, for reconstruction (§7.8).
+    const bundleFolders = new Map(bundle.folders.map((f) => [f.id, f]));
+    const pathOf = (folderId: string): string[] => {
+      const names: string[] = [];
+      let current: string | null = folderId;
+      const seen = new Set<string>();
+      while (current !== null) {
+        const folder = bundleFolders.get(current);
+        if (!folder || seen.has(current)) {
+          break;
+        }
+        seen.add(current);
+        names.unshift(folder.name);
+        current = folder.parentId;
+      }
+      return names;
+    };
+
+    const folderCache = new Map<string, Folder[]>();
+    const ensureFolderPath = async (
+      localLibraryId: string,
+      names: string[]
+    ): Promise<string | null> => {
+      if (names.length === 0) {
+        return null;
+      }
+      if (!folderCache.has(localLibraryId)) {
+        folderCache.set(localLibraryId, await this.getFoldersByLibrary(localLibraryId));
+      }
+      const known = folderCache.get(localLibraryId)!;
+      let parentId: string | null = null;
+      for (const name of names) {
+        const match = known.find(
+          (f) => f.parentId === parentId && f.name.toLowerCase() === name.toLowerCase()
+        );
+        if (match) {
+          parentId = match.id;
+        } else {
+          const siblings = known.filter((f) => f.parentId === parentId);
+          const created = await this.createFolder({
+            libraryId: localLibraryId,
+            parentId,
+            name,
+            sortOrder: siblings.length,
+          });
+          known.push(created);
+          parentId = created.id;
+          result.foldersAdded += 1;
+        }
+      }
+      return parentId;
+    };
+
+    // Tags: bundle id → local id, by case-insensitive name.
+    const tagMap = new Map<string, string>();
+    for (const tag of bundle.tags) {
+      const existing = await this.getTagByName(tag.name);
+      if (existing) {
+        tagMap.set(tag.id, existing.id);
+      } else {
+        const created = await this.createTag(tag.name);
+        tagMap.set(tag.id, created.id);
+        result.tagsAdded += 1;
+      }
+    }
+
+    for (const snippet of bundle.snippets) {
+      const tagIds = [
+        ...new Set(
+          snippet.tagIds.map((id) => tagMap.get(id)).filter((id): id is string => id !== undefined)
+        ),
+      ];
+      const memberships: Snippet["memberships"] = [];
+      for (const membership of snippet.memberships) {
+        const localLibraryId = libraryMap.get(membership.libraryId);
+        if (!localLibraryId) {
+          continue; // membership to a library the bundle didn't describe
+        }
+        const folderId =
+          membership.folderId === null
+            ? null
+            : await ensureFolderPath(localLibraryId, pathOf(membership.folderId));
+        memberships.push({ libraryId: localLibraryId, folderId });
+      }
+
+      const existing = await this.getSnippet(snippet.id);
+      if (!existing) {
+        await this.insertSnippetRow({ ...snippet, tagIds, memberships });
+        result.snippetsAdded += 1;
+      } else if (policy === "keep-mine") {
+        continue;
+      } else if (policy === "take-theirs") {
+        await this.updateSnippet({
+          ...existing,
+          name: snippet.name,
+          content: snippet.content,
+          history: snippet.history,
+          tagIds,
+          memberships,
+        });
+        result.snippetsUpdated += 1;
+      } else {
+        // keep-both (§7.8 default): copy with a fresh id, suffixed name.
+        await this.insertSnippetRow({
+          ...snippet,
+          id: newId(),
+          name: `${snippet.name} (imported)`,
+          tagIds,
+          memberships,
+        });
+        result.snippetsCopied += 1;
+      }
+    }
+    return result;
+  }
+
+  /** Insert a fully-formed snippet (import path) keeping counts/indexes right. */
+  private async insertSnippetRow(snippet: Snippet): Promise<void> {
+    await this.db.transaction("rw", [this.db.snippets, this.db.tags, this.db.prefs], async () => {
+      await this.db.snippets.add({
+        ...snippet,
+        membershipLibraryIds: membershipLibraryIds(snippet),
+      });
+      await this.adjustTagUsage(snippet.tagIds, +1);
+      await this.bumpChangesSinceExport();
+    });
   }
 
   // ---- internals ----
