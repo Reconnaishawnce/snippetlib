@@ -77,9 +77,17 @@ export interface SnippetListProps {
   onEdit: (snippet: Snippet) => void;
   /** Insert one or more snippets at the cursor, in list order (§7.5, M4). */
   onInsert: (snippets: Snippet[]) => void;
+  onHistory: (snippet: Snippet) => void;
+  /** Export the given snippets as a bundle (§7.8). */
+  onExport: (snippets: Snippet[]) => void;
 }
 
-export const SnippetList: React.FC<SnippetListProps> = ({ onEdit, onInsert }) => {
+export const SnippetList: React.FC<SnippetListProps> = ({
+  onEdit,
+  onInsert,
+  onHistory,
+  onExport,
+}) => {
   const styles = useStyles();
   const { scope, selectedFolderId } = useLibraryStore();
   const snippets = useSnippetStore((s) => s.snippets);
@@ -178,6 +186,8 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit, onInsert }) =>
                 <MenuList>
                   <AddToQueueMenuItem snippetId={snippet.id} />
                   <MenuItem onClick={() => onEdit(snippet)}>Edit…</MenuItem>
+                  <MenuItem onClick={() => onHistory(snippet)}>History…</MenuItem>
+                  <MenuItem onClick={() => onExport([snippet])}>Export…</MenuItem>
                   <MenuItem onClick={() => setToDelete(snippet)}>Delete…</MenuItem>
                 </MenuList>
               </MenuPopover>

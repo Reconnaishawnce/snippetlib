@@ -44,7 +44,13 @@ function scopeKey(scope: LibraryScope): string {
   }
 }
 
-export const LibrarySwitcher: React.FC = () => {
+export interface LibrarySwitcherProps {
+  onExportAll: () => void;
+  onExportLibrary: (libraryId: string) => void;
+  onImport: () => void;
+}
+
+export const LibrarySwitcher: React.FC<LibrarySwitcherProps> = (props) => {
   const styles = useStyles();
   const { libraries, scope, selectScope, createLibrary, renameLibrary, deleteLibrary } =
     useLibraryStore();
@@ -111,6 +117,11 @@ export const LibrarySwitcher: React.FC = () => {
             <MenuItem disabled={!active} onClick={() => setDialog("delete")}>
               Delete library…
             </MenuItem>
+            <MenuItem onClick={props.onExportAll}>Export everything…</MenuItem>
+            <MenuItem disabled={!active} onClick={() => active && props.onExportLibrary(active.id)}>
+              Export this library…
+            </MenuItem>
+            <MenuItem onClick={props.onImport}>Import…</MenuItem>
           </MenuList>
         </MenuPopover>
       </Menu>

@@ -2,6 +2,12 @@ import * as React from "react";
 import {
   Button,
   CounterBadge,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
   Divider,
   MessageBar,
   MessageBarActions,
@@ -24,11 +30,15 @@ import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
 import { buildInsertText, planInsert } from "../state/insertFlow";
+import { backupNudgeDue, exportAndDownload } from "../state/importExportActions";
 import { unInsertedCount } from "../state/queueOps";
 import { deriveDefaultName } from "../state/snippetName";
 import { getStorage } from "../state/storage";
+import { SAVE_AS_NEW_THRESHOLD, diceSimilarity } from "../../importexport/similarity";
 import { LibrarySwitcher } from "./LibrarySwitcher";
 import { FolderTree } from "./FolderTree";
+import { HistoryDialog } from "./HistoryDialog";
+import { ImportDialog } from "./ImportDialog";
 import { PlaceholderDialog } from "./PlaceholderDialog";
 import { PlaceholdersTab } from "./PlaceholdersTab";
 import { QueueTab } from "./QueueTab";
@@ -103,6 +113,16 @@ const App: React.FC = () => {
     missing: ParsedPlaceholder[];
     onDone?: () => void;
   } | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const [historyFor, setHistoryFor] = React.useState<Snippet | null>(null);
+  const [backupDue, setBackupDue] = React.useState(false);
+  const [pendingEdit, setPendingEdit] = React.useState<{
+    previous: Snippet;
+    values: SnippetFormValues;
+    tagIds: string[];
+    similarity: number;
+  } | null>(null);
 
   React.useEffect(() => {
     init().catch((e: unknown) => {
@@ -119,6 +139,39 @@ const App: React.FC = () => {
       .then((p) => setDragToDocEnabled(p.enableDocDragDrop))
       .catch(() => setDragToDocEnabled(false));
   }, [init]);
+
+  const refreshBackupNudge = React.useCallback(async () => {
+    try {
+      const storage = getStorage();
+      const [prefs, snippets] = await Promise.all([storage.getPrefs(), storage.getAllSnippets()]);
+      setBackupDue(
+        backupNudgeDue(prefs.lastExportAt, prefs.changesSinceExport, snippets.length, new Date())
+      );
+    } catch {
+      setBackupDue(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (initialized) {
+      void refreshBackupNudge();
+    }
+  }, [initialized, refreshBackupNudge]);
+
+  const onExport = async (selection: {
+    libraryIds?: string[];
+    snippetIds?: string[];
+  }): Promise<void> => {
+    try {
+      const bundle = await exportAndDownload(selection);
+      setNotice(
+        `Exported ${bundle.snippets.length} ${bundle.snippets.length === 1 ? "snippet" : "snippets"}.`
+      );
+      await refreshBackupNudge();
+    } catch (e: unknown) {
+      setError(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
 
   const doInsert = async (
     snippets: Snippet[],
@@ -243,8 +296,40 @@ const App: React.FC = () => {
       if (session.mode === "create") {
         await saveNew({ name, content, memberships, tagIds });
       } else if (session.editing) {
-        await saveEdit({ ...session.editing, name, content, memberships, tagIds });
+        if (content === session.editing.content) {
+          // Name/tags/targets only — plain update, no history push (§7.9).
+          await saveEdit({ ...session.editing, name, content, memberships, tagIds });
+        } else {
+          const similarity = diceSimilarity(session.editing.content, content);
+          console.debug(`[reportsnips] edit similarity: ${similarity.toFixed(3)}`);
+          setPendingEdit({ previous: session.editing, values, tagIds, similarity });
+        }
       }
+      await refreshBackupNudge();
+    } catch (e: unknown) {
+      setError(`Saving failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const finishEdit = async (choice: "update" | "new") => {
+    const pending = pendingEdit;
+    setPendingEdit(null);
+    if (!pending) {
+      return;
+    }
+    const draft = {
+      name: pending.values.name,
+      content: pending.values.content,
+      memberships: pending.values.memberships,
+      tagIds: pending.tagIds,
+    };
+    try {
+      if (choice === "update") {
+        await useSnippetStore.getState().updateWithHistory(pending.previous, draft);
+      } else {
+        await useSnippetStore.getState().saveAsNew(draft);
+      }
+      await refreshBackupNudge();
     } catch (e: unknown) {
       setError(`Saving failed: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -266,7 +351,11 @@ const App: React.FC = () => {
     <div className={styles.root}>
       <Toaster />
       <div className={styles.header}>
-        <LibrarySwitcher />
+        <LibrarySwitcher
+          onExportAll={() => void onExport({})}
+          onExportLibrary={(libraryId) => void onExport({ libraryIds: [libraryId] })}
+          onImport={() => setImportOpen(true)}
+        />
         <Button appearance="primary" icon={<Add16Regular />} onClick={() => void onSaveSelection()}>
           Save Selection
         </Button>
@@ -285,13 +374,54 @@ const App: React.FC = () => {
             />
           </MessageBar>
         )}
+        {notice && (
+          <MessageBar intent="success">
+            <MessageBarBody>{notice}</MessageBarBody>
+            <MessageBarActions
+              containerAction={
+                <Button
+                  appearance="transparent"
+                  icon={<Dismiss16Regular />}
+                  aria-label="Dismiss"
+                  onClick={() => setNotice(null)}
+                />
+              }
+            />
+          </MessageBar>
+        )}
+        {backupDue && !notice && (
+          <MessageBar intent="info">
+            <MessageBarBody>
+              Your snippet library hasn&apos;t been backed up recently.
+            </MessageBarBody>
+            <MessageBarActions
+              containerAction={
+                <Button
+                  appearance="transparent"
+                  icon={<Dismiss16Regular />}
+                  aria-label="Dismiss backup reminder"
+                  onClick={() => setBackupDue(false)}
+                />
+              }
+            >
+              <Button appearance="secondary" size="small" onClick={() => void onExport({})}>
+                Back up now
+              </Button>
+            </MessageBarActions>
+          </MessageBar>
+        )}
       </div>
       <SearchBox />
       <Divider className={styles.divider} />
       {searching ? (
         <div className={styles.content}>
           <TagFilterBar />
-          <SearchResults onEdit={onEdit} onInsert={onInsert} />
+          <SearchResults
+            onEdit={onEdit}
+            onInsert={onInsert}
+            onHistory={setHistoryFor}
+            onExport={(snippets) => void onExport({ snippetIds: snippets.map((s) => s.id) })}
+          />
         </div>
       ) : (
         <>
@@ -320,7 +450,12 @@ const App: React.FC = () => {
               <>
                 <TagFilterBar />
                 <FolderTree />
-                <SnippetList onEdit={onEdit} onInsert={onInsert} />
+                <SnippetList
+                  onEdit={onEdit}
+                  onInsert={onInsert}
+                  onHistory={setHistoryFor}
+                  onExport={(snippets) => void onExport({ snippetIds: snippets.map((s) => s.id) })}
+                />
               </>
             ) : tab === "queue" ? (
               <QueueTab
@@ -355,6 +490,74 @@ const App: React.FC = () => {
           onCancel={() => setForm(null)}
         />
       )}
+
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onError={setError}
+        onDone={(result) => {
+          const parts = [
+            result.snippetsAdded > 0 && `${result.snippetsAdded} added`,
+            result.snippetsUpdated > 0 && `${result.snippetsUpdated} updated`,
+            result.snippetsCopied > 0 && `${result.snippetsCopied} imported as copies`,
+            result.tagsAdded > 0 && `${result.tagsAdded} new tags`,
+            result.librariesAdded > 0 && `${result.librariesAdded} new libraries`,
+          ].filter(Boolean);
+          setNotice(
+            `Import complete: ${parts.length > 0 ? parts.join(", ") : "nothing to change"}.`
+          );
+          void refreshBackupNudge();
+        }}
+      />
+
+      <HistoryDialog
+        snippet={historyFor}
+        onClose={() => setHistoryFor(null)}
+        onRestore={(snippet, revisionIndex) => {
+          setHistoryFor(null);
+          useSnippetStore
+            .getState()
+            .restoreRevision(snippet, revisionIndex)
+            .catch((e: unknown) =>
+              setError(`Restore failed: ${e instanceof Error ? e.message : String(e)}`)
+            );
+        }}
+      />
+
+      <Dialog open={pendingEdit !== null} onOpenChange={(_, d) => !d.open && setPendingEdit(null)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Save changes</DialogTitle>
+            <DialogContent>
+              {pendingEdit && pendingEdit.similarity < SAVE_AS_NEW_THRESHOLD
+                ? "This looks like a substantially different snippet. Save it as a new snippet, or update the existing one?"
+                : "Update the existing snippet (keeping its last 3 versions in history), or save this as a new snippet?"}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance={
+                  pendingEdit && pendingEdit.similarity < SAVE_AS_NEW_THRESHOLD
+                    ? "secondary"
+                    : "primary"
+                }
+                onClick={() => void finishEdit("update")}
+              >
+                Update Snippet
+              </Button>
+              <Button
+                appearance={
+                  pendingEdit && pendingEdit.similarity < SAVE_AS_NEW_THRESHOLD
+                    ? "primary"
+                    : "secondary"
+                }
+                onClick={() => void finishEdit("new")}
+              >
+                Save as New Snippet
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };

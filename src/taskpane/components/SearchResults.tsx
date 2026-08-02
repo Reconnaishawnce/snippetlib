@@ -102,9 +102,17 @@ export interface SearchResultsProps {
   onEdit: (snippet: Snippet) => void;
   /** Insert one or more snippets at the cursor, in result order (§7.5, M4). */
   onInsert: (snippets: Snippet[]) => void;
+  onHistory: (snippet: Snippet) => void;
+  /** Export the given snippets as a bundle (§7.8). */
+  onExport: (snippets: Snippet[]) => void;
 }
 
-export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit, onInsert }) => {
+export const SearchResults: React.FC<SearchResultsProps> = ({
+  onEdit,
+  onInsert,
+  onHistory,
+  onExport,
+}) => {
   const styles = useStyles();
   const hits = useSearchStore((s) => s.hits);
   const filterTagIds = useSearchStore((s) => s.filterTagIds);
@@ -247,6 +255,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ onEdit, onInsert }
                   <MenuList>
                     <AddToQueueMenuItem snippetId={snippet.id} />
                     <MenuItem onClick={() => onEdit(snippet)}>Edit…</MenuItem>
+                    <MenuItem onClick={() => onHistory(snippet)}>History…</MenuItem>
+                    <MenuItem onClick={() => onExport([snippet])}>Export…</MenuItem>
                     <MenuItem onClick={() => setToDelete(snippet)}>Delete…</MenuItem>
                   </MenuList>
                 </MenuPopover>
