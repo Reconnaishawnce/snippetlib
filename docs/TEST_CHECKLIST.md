@@ -46,6 +46,17 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
-## Later milestones
+## M7 — Polish & hardening
 
-- Dark mode pass; 320 px width pass (M7)
+- [ ] Settings tab: both toggles flip and persist across a pane reload
+- [ ] Settings → toggle "Allow dragging queue items into the document" off hides the queue drag grips
+- [ ] Settings → Export everything / Import… work (same behavior as the gear menu)
+- [ ] Settings → Delete all data…: button stays disabled until `DELETE` is typed; after deletion the pane shows a fresh empty "My Snippets" library
+- [ ] Help tab renders and the sideloading link opens
+- [ ] Dark mode: with a dark Office theme (File → Account → Office Theme → Black) the pane renders dark; readable text everywhere, no white patches
+- [ ] Importing a bad/non-JSON file shows a readable error and the pane does **not** vibrate/jitter (owner-reported bug)
+- [ ] ⋯ → Move to… on a snippet: pick a folder, the snippet appears under that folder in Browse (and clicking the folder filters to it)
+- [ ] Move to… with no location selected moves the snippet to the Unassigned Backlog
+- [ ] Keyboard: Tab to a snippet card, press Enter — the snippet inserts at the cursor
+- [ ] Narrow pane (~320 px): tabs wrap to a second row, no horizontal scrolling, dialogs fit
+- [ ] Unexpected error simulation not required — but confirm no blank-pane states during the whole pass (error boundary + watchdog)

@@ -4,6 +4,17 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### M7 — Polish & hardening (2026-08-02)
+
+- Settings tab (§7.10): confirm-before-new-tag and drag-into-document toggles (backed by stored prefs), Export/Import shortcuts with last-full-export date, and a danger-zone **Delete all data** that requires typing `DELETE` and then reseeds a fresh "My Snippets" library.
+- Help tab: placeholder syntax (incl. `\[escaping\]`), the queue workflow, folders, backup/sharing guidance, and a link to the sideloading guide for teammates.
+- Dark mode (§8): the pane follows Word's own theme (via the Office theme's background luminance) and falls back to the OS `prefers-color-scheme`; Fluent web dark/light themes applied at the root.
+- Error boundary: an unexpected render error now shows a readable message and a Reload button instead of a blank pane.
+- Keyboard pass: snippet cards are focusable and **Enter inserts**; the whole UI remains tab-navigable (Fluent focus order).
+- **Fix (owner report):** importing a bad JSON file made the pane vibrate — a scrollbar appear/disappear feedback loop. The pane now reserves scrollbar space permanently (`scrollbar-gutter`).
+- **Folder discoverability (owner report):** every snippet row and search result gains **⋯ → Move to…** — a dialog listing every library › folder location (multi-select, since snippets can live in several places); the save form's target field is relabeled "Save to (library › folder)" with a hint pointing at Move to.
+- Narrow panes: the six tabs wrap instead of overflowing at ~320 px (overflow previously clipped the Settings/Help icons and nudged the pane into horizontal scroll).
+
 ### M6 — Import/export & history (2026-08-02)
 
 - Export (§7.8): everything, a single library, or explicit snippets (per-row Export) to `reportsnips-export-YYYYMMDD.json` — formatVersion 1 bundles containing only the referenced tags, libraries, and folder chains, with snippet history included.
