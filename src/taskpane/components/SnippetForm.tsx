@@ -56,17 +56,17 @@ export interface SnippetFormProps {
   onCancel: () => void;
 }
 
-interface TargetOption {
+export interface TargetOption {
   key: string; // `${libraryId}:${folderId ?? ""}`
   label: string;
   membership: SnippetMembership;
 }
 
-function targetKey(m: SnippetMembership): string {
+export function targetKey(m: SnippetMembership): string {
   return `${m.libraryId}:${m.folderId ?? ""}`;
 }
 
-function buildTargetOptions(libraries: Library[], allFolders: Folder[]): TargetOption[] {
+export function buildTargetOptions(libraries: Library[], allFolders: Folder[]): TargetOption[] {
   const options: TargetOption[] = [];
   const sorted = [...libraries].sort((a, b) => a.name.localeCompare(b.name));
   for (const library of sorted) {
@@ -166,11 +166,11 @@ export const SnippetForm: React.FC<SnippetFormProps> = (props) => {
                 <TagInput chips={tagChips} onChange={setTagChips} />
               </Field>
               <Field
-                label="Save to"
+                label="Save to (library › folder)"
                 hint={
                   selectedKeys.length === 0
                     ? "No destination selected — this snippet will go to the Unassigned Backlog."
-                    : undefined
+                    : "Pick one or more folders; you can also move snippets later via ⋯ → Move to."
                 }
               >
                 <Combobox

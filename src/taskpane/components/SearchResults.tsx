@@ -103,6 +103,8 @@ export interface SearchResultsProps {
   /** Insert one or more snippets at the cursor, in result order (§7.5, M4). */
   onInsert: (snippets: Snippet[]) => void;
   onHistory: (snippet: Snippet) => void;
+  /** Change which library/folder locations hold this snippet. */
+  onMove: (snippet: Snippet) => void;
   /** Export the given snippets as a bundle (§7.8). */
   onExport: (snippets: Snippet[]) => void;
 }
@@ -111,6 +113,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   onEdit,
   onInsert,
   onHistory,
+  onMove,
   onExport,
 }) => {
   const styles = useStyles();
@@ -207,7 +210,17 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
             (snippet.memberships.length > 1 ? `  (+${snippet.memberships.length - 1})` : "")
           : "Unassigned Backlog";
         return (
-          <Card key={snippet.id} className={styles.card} size="small">
+          <Card
+            key={snippet.id}
+            className={styles.card}
+            size="small"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.target === e.currentTarget) {
+                onInsert([snippet]);
+              }
+            }}
+          >
             <div className={styles.header}>
               <Checkbox
                 checked={selectedIds.has(snippet.id)}
@@ -255,6 +268,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   <MenuList>
                     <AddToQueueMenuItem snippetId={snippet.id} />
                     <MenuItem onClick={() => onEdit(snippet)}>Edit…</MenuItem>
+                    <MenuItem onClick={() => onMove(snippet)}>Move to…</MenuItem>
                     <MenuItem onClick={() => onHistory(snippet)}>History…</MenuItem>
                     <MenuItem onClick={() => onExport([snippet])}>Export…</MenuItem>
                     <MenuItem onClick={() => setToDelete(snippet)}>Delete…</MenuItem>

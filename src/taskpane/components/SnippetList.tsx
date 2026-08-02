@@ -78,6 +78,8 @@ export interface SnippetListProps {
   /** Insert one or more snippets at the cursor, in list order (§7.5, M4). */
   onInsert: (snippets: Snippet[]) => void;
   onHistory: (snippet: Snippet) => void;
+  /** Change which library/folder locations hold this snippet. */
+  onMove: (snippet: Snippet) => void;
   /** Export the given snippets as a bundle (§7.8). */
   onExport: (snippets: Snippet[]) => void;
 }
@@ -86,6 +88,7 @@ export const SnippetList: React.FC<SnippetListProps> = ({
   onEdit,
   onInsert,
   onHistory,
+  onMove,
   onExport,
 }) => {
   const styles = useStyles();
@@ -156,7 +159,17 @@ export const SnippetList: React.FC<SnippetListProps> = ({
         onClear={() => setSelectedIds(new Set())}
       />
       {visible.map((snippet) => (
-        <Card key={snippet.id} className={styles.card} size="small">
+        <Card
+          key={snippet.id}
+          className={styles.card}
+          size="small"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.target === e.currentTarget) {
+              onInsert([snippet]);
+            }
+          }}
+        >
           <div className={styles.header}>
             <Checkbox
               checked={selectedIds.has(snippet.id)}
@@ -186,6 +199,7 @@ export const SnippetList: React.FC<SnippetListProps> = ({
                 <MenuList>
                   <AddToQueueMenuItem snippetId={snippet.id} />
                   <MenuItem onClick={() => onEdit(snippet)}>Edit…</MenuItem>
+                  <MenuItem onClick={() => onMove(snippet)}>Move to…</MenuItem>
                   <MenuItem onClick={() => onHistory(snippet)}>History…</MenuItem>
                   <MenuItem onClick={() => onExport([snippet])}>Export…</MenuItem>
                   <MenuItem onClick={() => setToDelete(snippet)}>Delete…</MenuItem>
