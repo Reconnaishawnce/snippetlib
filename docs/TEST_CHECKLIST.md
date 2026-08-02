@@ -46,6 +46,20 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Usability run 2 — right-click save, freshness, templates, toggles
+
+**Re-sideload the manifest first** (the context menu is a manifest change): remove and re-add `manifest.xml` per docs/SIDELOADING.md, then restart Word.
+
+- [ ] Select text → right-click → "Save to ReportSnips" appears and opens the pane into the save form with the selection pre-filled
+- [ ] With Quick Save on, the right-click command saves instantly (toast) instead of opening the form
+- [ ] Settings → Features: turning Queue off hides the Queue tab, all Q buttons, and Add-to-Queue menu items; turning it back on restores them (queue contents intact)
+- [ ] Turning Usage sorting off removes Recently/Most used from the sort menu and stops counting inserts
+- [ ] Settings → Snippet freshness: enable it, set "not used in" to 1 day, reopen the pane tomorrow (or set thresholds around an old imported library) — the alert banner appears; Review lists the snippets with reasons
+- [ ] "Looks fine" removes a snippet from the review and it stays gone (clock reset)
+- [ ] Alert-banner switch off: no banner, but Settings → "Review stale snippets (N)" still works
+- [ ] Queue tab → Templates → Save queue as template; open a different/new document → Templates → Load — sections and snippets appear un-inserted
+- [ ] Delete template removes it from the menu
+
 ## Usability run 1 — capture & insert speed
 
 - [ ] Q button on a browse row adds the snippet to the Queue (badge increments); with 2+ sections it lands in the last-used section

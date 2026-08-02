@@ -33,3 +33,9 @@ The plan (§4) calls for "ESLint + Prettier, run in CI". The official template s
 **Date:** 2026-08-01 · **Milestone:** M0
 
 `yo office` (the official generator) failed in the build environment (sandboxed home directory broke its config store, and its post-generate npm spawn). The generator is a thin wrapper that clones `OfficeDev/Office-Addin-TaskPane-React` and runs its `convert-to-single-host` script — so we did exactly that by hand (`word` + `xml` + name `ReportSnips`), which yields the identical project. The template's `package-lock.json` pinned tarball URLs to a Microsoft-internal Azure DevOps feed (401 for the public); it was regenerated against `registry.npmjs.org`. No functional difference from a `yo office` scaffold.
+
+## ADR-006: Every non-core feature ships with an off switch
+
+**Date:** 2026-08-02 · **Status:** accepted
+
+Owner directive (usability run 2): the interface must stay simple for people who don't want every feature, and settings someone might fiddle into an annoying state (thresholds, alerts) must be easy to neutralize. Standing rule going forward: any feature beyond save/browse/search/insert gets a toggle in Settings → Features (defaulting to today's behavior), and anything that produces unsolicited alerts is opt-in. Current toggles: Queue (tab + Q buttons + menu items), usage sorting/frecency (recording + sorts), Quick Save, drag-into-document, new-tag confirm; stale-snippet review is opt-in with configurable thresholds and an alerts switch. Turning a feature off hides UI but never deletes data.

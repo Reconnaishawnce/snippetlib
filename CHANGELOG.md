@@ -4,6 +4,14 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Usability run 2 — right-click save, freshness review, templates, feature toggles (2026-08-02)
+
+- **Right-click "Save to ReportSnips"** (requires re-sideloading the manifest): selecting text and right-clicking now offers a save command that opens the pane straight into the save flow — the form, or an instant Quick Save when that mode is on.
+- **Snippet freshness review** (opt-in, Settings → Snippet freshness): flags snippets not **edited in X days** or not **used in Y days** (both configurable). Choose an alert banner or manual-only review; the review dialog offers Edit or "Looks fine" per snippet (and "All look fine"), which resets the staleness clock without counting as an edit.
+- **Queue templates**: save the current queue layout as a named template ("Site Report", "Quarterly Review") and load it into any document — sections and snippets appear un-inserted, ready to work top to bottom like a checklist. Templates menu lives next to "Add section".
+- **Feature toggles** (ADR-006): Settings now opens with a Features section — Queue (tab, Q buttons, menu items), usage sorting, Quick Save, drag-into-document, and tag confirmation can each be turned off; the UI hides, the data stays. Turning usage sorting off also stops insert counting and falls back to name order.
+- Settings reorganized into sections: Features · Snippet freshness · Backup & sharing · Danger zone.
+
 ### Usability run 1 — capture & insert speed (2026-08-02)
 
 - **Q button**: every snippet row and search result gets a one-click **Q** next to Insert that adds the snippet to the Queue's last-used section — no menu digging.

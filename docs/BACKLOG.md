@@ -8,7 +8,9 @@ Ideas accepted but not scheduled into the v0.5 milestones. Reviewed at each mile
 
 When text is highlighted, Word shows its floating mini-toolbar. Requested: a "Save Snippet" button there.
 
-**Feasibility:** Office.js provides no API to extend the hover mini-toolbar, so that exact placement is impossible. The closest supported mechanism is a **right-click context menu command** (`ExtensionPoint xsi:type="ContextMenuText"` in the XML manifest), which adds a "Save to ReportSnips" item when right-clicking selected text — it can open the task pane directly into the save form. Good candidate for M7 polish or v1.0.
+**Feasibility:** Office.js provides no API to extend the hover mini-toolbar, so that exact placement is impossible. The closest supported mechanism is a **right-click context menu command** (`ExtensionPoint xsi:type="ContextMenu"` in the XML manifest), which adds a "Save to ReportSnips" item when right-clicking selected text — it can open the task pane directly into the save form.
+
+**Shipped 2026-08-02 (usability run 2):** right-click on selected text → "Save to ReportSnips" opens the pane at `?action=save-selection`, which triggers the normal save flow (form, or Quick Save when enabled).
 
 ## Dev-mode first-load race
 
