@@ -34,7 +34,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import type { QueueSection, Snippet } from "../../models/entities";
+import type { QueueSection, QueueTemplate, Snippet } from "../../models/entities";
 import { resolveContent } from "../../office/placeholderEngine";
 import { usePlaceholderStore } from "../state/placeholderStore";
 import { useQueueStore } from "../state/queueStore";
@@ -227,14 +227,29 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
   const queue = useQueueStore((s) => s.queue);
   const { addSection, renameSection, deleteSection, clearInserted, markInserted, moveItem } =
     useQueueStore();
+  const saveAsTemplate = useQueueStore((s) => s.saveAsTemplate);
+  const loadTemplate = useQueueStore((s) => s.loadTemplate);
+  const [templates, setTemplates] = React.useState<QueueTemplate[]>([]);
   const [snippetsById, setSnippetsById] = React.useState<Map<string, Snippet>>(new Map());
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
   const [dialog, setDialog] = React.useState<
     | { kind: "add" }
     | { kind: "rename"; sectionId: string }
     | { kind: "delete"; sectionId: string }
+    | { kind: "saveTemplate" }
     | null
   >(null);
+
+  const refreshTemplates = React.useCallback(async () => {
+    try {
+      setTemplates(await getStorage().getAllQueueTemplates());
+    } catch {
+      setTemplates([]);
+    }
+  }, []);
+  React.useEffect(() => {
+    void refreshTemplates();
+  }, [refreshTemplates]);
 
   const sections = displaySections(queue);
 
@@ -285,6 +300,52 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
     }
   };
 
+  const templatesMenu = (
+    <Menu>
+      <MenuTrigger disableButtonEnhancement>
+        <Button appearance="subtle" size="small">
+          Templates
+        </Button>
+      </MenuTrigger>
+      <MenuPopover>
+        <MenuList>
+          <MenuItem
+            disabled={sections.every((s) => s.items.length === 0)}
+            onClick={() => setDialog({ kind: "saveTemplate" })}
+          >
+            Save queue as template…
+          </MenuItem>
+          {templates.map((template) => (
+            <MenuItem key={template.id} onClick={() => loadTemplate(template)}>
+              Load &ldquo;{template.name}&rdquo;
+            </MenuItem>
+          ))}
+          {templates.length > 0 && (
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <MenuItem>Delete template</MenuItem>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  {templates.map((template) => (
+                    <MenuItem
+                      key={template.id}
+                      onClick={() =>
+                        void getStorage().deleteQueueTemplate(template.id).then(refreshTemplates)
+                      }
+                    >
+                      {template.name}
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          )}
+        </MenuList>
+      </MenuPopover>
+    </Menu>
+  );
+
   const dialogSection =
     dialog && "sectionId" in dialog
       ? queue.sections.find((s) => s.id === dialog.sectionId)
@@ -309,6 +370,7 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
           >
             Add section
           </Button>
+          {templates.length > 0 && templatesMenu}
         </div>
         <NameDialog
           open={dialog?.kind === "add"}
@@ -388,8 +450,20 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
           >
             Add section
           </Button>
+          {templatesMenu}
         </div>
 
+        <NameDialog
+          open={dialog?.kind === "saveTemplate"}
+          title="Save queue as template"
+          label="Template name"
+          submitLabel="Save template"
+          onSubmit={(name) => {
+            setDialog(null);
+            void saveAsTemplate(name).then(refreshTemplates);
+          }}
+          onCancel={() => setDialog(null)}
+        />
         <NameDialog
           open={dialog?.kind === "add"}
           title="New section"
