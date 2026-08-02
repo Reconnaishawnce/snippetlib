@@ -115,8 +115,15 @@ export const SnippetList: React.FC<SnippetListProps> = ({
   const tags = useTagStore((s) => s.tags);
   const [toDelete, setToDelete] = React.useState<Snippet | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  const sort = usePrefsStore((s) => s.prefs?.browseSort ?? "name");
+  const storedSort = usePrefsStore((s) => s.prefs?.browseSort ?? "name");
+  const enableFrecency = usePrefsStore((s) => s.prefs?.enableFrecency ?? true);
   const updatePrefs = usePrefsStore((s) => s.update);
+  // With usage sorting off, a stored usage sort silently falls back to name.
+  const usageSort = storedSort === "recent" || storedSort === "most-used";
+  const sort: BrowseSort = !enableFrecency && usageSort ? "name" : storedSort;
+  const sortOptions = (Object.keys(BROWSE_SORT_LABELS) as BrowseSort[]).filter(
+    (key) => enableFrecency || (key !== "recent" && key !== "most-used")
+  );
 
   const folders = useLibraryStore((s) => s.folders);
 
@@ -200,7 +207,7 @@ export const SnippetList: React.FC<SnippetListProps> = ({
           </MenuTrigger>
           <MenuPopover>
             <MenuList>
-              {(Object.keys(BROWSE_SORT_LABELS) as BrowseSort[]).map((key) => (
+              {sortOptions.map((key) => (
                 <MenuItemRadio key={key} name="sort" value={key}>
                   {BROWSE_SORT_LABELS[key]}
                 </MenuItemRadio>

@@ -39,6 +39,7 @@ import { buildInsertText, planInsert } from "../state/insertFlow";
 import { backupNudgeDue, exportAndDownload } from "../state/importExportActions";
 import { unInsertedCount } from "../state/queueOps";
 import { deriveDefaultName } from "../state/snippetName";
+import { findStaleSnippets, type StaleResult } from "../state/staleness";
 import { getStorage } from "../state/storage";
 import { SAVE_AS_NEW_THRESHOLD, diceSimilarity } from "../../importexport/similarity";
 import { LibrarySwitcher } from "./LibrarySwitcher";
@@ -51,6 +52,7 @@ import { HelpTab } from "./HelpTab";
 import { MoveToDialog } from "./MoveToDialog";
 import { QueueTab } from "./QueueTab";
 import { SettingsTab } from "./SettingsTab";
+import { StaleReviewDialog } from "./StaleReviewDialog";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
 import { SnippetList } from "./SnippetList";
@@ -137,6 +139,9 @@ const App: React.FC = () => {
   const [historyFor, setHistoryFor] = React.useState<Snippet | null>(null);
   const [moveFor, setMoveFor] = React.useState<Snippet | null>(null);
   const [backupDue, setBackupDue] = React.useState(false);
+  const [staleResults, setStaleResults] = React.useState<StaleResult[]>([]);
+  const [staleReviewOpen, setStaleReviewOpen] = React.useState(false);
+  const enableQueue = prefs?.enableQueue ?? true;
   const [pendingEdit, setPendingEdit] = React.useState<{
     previous: Snippet;
     values: SnippetFormValues;
@@ -157,6 +162,13 @@ const App: React.FC = () => {
     void usePrefsStore.getState().load();
   }, [init]);
 
+  // A disabled feature must never leave its tab selected.
+  React.useEffect(() => {
+    if (!enableQueue && tab === "queue") {
+      setTab("browse");
+    }
+  }, [enableQueue, tab]);
+
   const refreshBackupNudge = React.useCallback(async () => {
     try {
       const storage = getStorage();
@@ -164,8 +176,12 @@ const App: React.FC = () => {
       setBackupDue(
         backupNudgeDue(prefs.lastExportAt, prefs.changesSinceExport, snippets.length, new Date())
       );
+      setStaleResults(
+        prefs.staleReviewEnabled ? findStaleSnippets(snippets, prefs, new Date()) : []
+      );
     } catch {
       setBackupDue(false);
+      setStaleResults([]);
     }
   }, []);
 
@@ -197,11 +213,13 @@ const App: React.FC = () => {
   ) => {
     try {
       await insertText(buildInsertText(snippets, values));
-      // Frecency: every successful insert bumps useCount/lastUsedAt.
-      void useSnippetStore
-        .getState()
-        .recordUsage(snippets.map((s) => s.id))
-        .catch(() => undefined);
+      // Frecency: every successful insert bumps useCount/lastUsedAt (unless off).
+      if (usePrefsStore.getState().prefs?.enableFrecency ?? true) {
+        void useSnippetStore
+          .getState()
+          .recordUsage(snippets.map((s) => s.id))
+          .catch(() => undefined);
+      }
       onDone?.();
     } catch (e: unknown) {
       setError(`Insert failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -302,6 +320,22 @@ const App: React.FC = () => {
       },
     });
   };
+
+  // Deep link from the right-click "Save to ReportSnips" command: the context
+  // menu opens the pane at taskpane.html?action=save-selection.
+  const deepLinkHandled = React.useRef(false);
+  React.useEffect(() => {
+    if (!initialized || deepLinkHandled.current) {
+      return;
+    }
+    /* global window */
+    if (new URLSearchParams(window.location.search).get("action") === "save-selection") {
+      deepLinkHandled.current = true;
+      void onSaveSelection();
+    }
+    // onSaveSelection is recreated per render; the ref guarantees one-shot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized]);
 
   const onEdit = (snippet: Snippet) => {
     const tagsById = new Map(useTagStore.getState().tags.map((t) => [t.id, t]));
@@ -464,6 +498,38 @@ const App: React.FC = () => {
             </MessageBarActions>
           </MessageBar>
         )}
+        {(prefs?.staleReviewEnabled ?? false) &&
+          (prefs?.staleAlerts ?? true) &&
+          staleResults.length > 0 &&
+          !notice &&
+          !quickSaved &&
+          !backupDue && (
+            <MessageBar intent="info">
+              <MessageBarBody>
+                {staleResults.length}{" "}
+                {staleResults.length === 1 ? "snippet hasn't" : "snippets haven't"} been edited or
+                used in a while.
+              </MessageBarBody>
+              <MessageBarActions
+                containerAction={
+                  <Button
+                    appearance="transparent"
+                    icon={<Dismiss16Regular />}
+                    aria-label="Dismiss stale reminder"
+                    onClick={() => setStaleResults([])}
+                  />
+                }
+              >
+                <Button
+                  appearance="secondary"
+                  size="small"
+                  onClick={() => setStaleReviewOpen(true)}
+                >
+                  Review
+                </Button>
+              </MessageBarActions>
+            </MessageBar>
+          )}
         {backupDue && !notice && !quickSaved && (
           <MessageBar intent="info">
             <MessageBarBody>
@@ -512,10 +578,12 @@ const App: React.FC = () => {
             className={styles.tabs}
           >
             <Tab value="browse">Browse</Tab>
-            <Tab value="queue">
-              Queue{" "}
-              {queueBadge > 0 && <CounterBadge count={queueBadge} size="small" color="brand" />}
-            </Tab>
+            {enableQueue && (
+              <Tab value="queue">
+                Queue{" "}
+                {queueBadge > 0 && <CounterBadge count={queueBadge} size="small" color="brand" />}
+              </Tab>
+            )}
             <Tab value="placeholders">Placeholders</Tab>
             <Tab value="tags">Tags</Tab>
             <Tab value="settings" aria-label="Settings" icon={<Settings20Regular />} />
@@ -549,6 +617,9 @@ const App: React.FC = () => {
                 onExportAll={() => void onExport({})}
                 onImport={() => setImportOpen(true)}
                 onError={setError}
+                staleCount={staleResults.length}
+                onReviewStale={() => setStaleReviewOpen(true)}
+                onStaleSettingsChanged={() => void refreshBackupNudge()}
               />
             ) : (
               <HelpTab />
@@ -591,6 +662,16 @@ const App: React.FC = () => {
           setNotice(
             `Import complete: ${parts.length > 0 ? parts.join(", ") : "nothing to change"}.`
           );
+          void refreshBackupNudge();
+        }}
+      />
+
+      <StaleReviewDialog
+        open={staleReviewOpen}
+        stale={staleResults}
+        onEdit={onEdit}
+        onClose={() => {
+          setStaleReviewOpen(false);
           void refreshBackupNudge();
         }}
       />

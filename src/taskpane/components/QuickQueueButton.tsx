@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Button, Tooltip, makeStyles, tokens } from "@fluentui/react-components";
 import { useQueueStore } from "../state/queueStore";
+import { usePrefsStore } from "../state/prefsStore";
 
 const useStyles = makeStyles({
   q: {
@@ -18,6 +19,10 @@ export const QuickQueueButton: React.FC<{ snippetId: string; snippetName: string
 }) => {
   const styles = useStyles();
   const addSnippet = useQueueStore((s) => s.addSnippet);
+  const enableQueue = usePrefsStore((s) => s.prefs?.enableQueue ?? true);
+  if (!enableQueue) {
+    return null;
+  }
   return (
     <Tooltip content="Add to Queue" relationship="label">
       <Button

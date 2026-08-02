@@ -1,4 +1,4 @@
-/** Settings tab (§7.10). */
+/** Settings tab (§7.10): feature toggles first — every non-core feature can be turned off. */
 import * as React from "react";
 import {
   Button,
@@ -11,6 +11,7 @@ import {
   Divider,
   Field,
   Input,
+  SpinButton,
   Switch,
   Text,
   makeStyles,
@@ -33,10 +34,14 @@ const useStyles = makeStyles({
     display: "flex",
     gap: tokens.spacingHorizontalS,
     flexWrap: "wrap",
+    alignItems: "center",
   },
   danger: {
     color: tokens.colorPaletteRedForeground1,
     fontWeight: tokens.fontWeightSemibold,
+  },
+  daysField: {
+    maxWidth: "220px",
   },
 });
 
@@ -44,6 +49,11 @@ export interface SettingsTabProps {
   onExportAll: () => void;
   onImport: () => void;
   onError: (message: string) => void;
+  /** Stale snippets under the current thresholds (0 when review is off). */
+  staleCount: number;
+  onReviewStale: () => void;
+  /** Called after any pref change that affects staleness, so App recomputes. */
+  onStaleSettingsChanged: () => void;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
@@ -57,6 +67,32 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
       void load();
     }
   }, [prefs, load]);
+
+  const updateStale = async (patch: Parameters<typeof update>[0]) => {
+    await update(patch);
+    props.onStaleSettingsChanged();
+  };
+
+  const daysSpinner = (
+    label: string,
+    value: number,
+    onCommit: (days: number) => void
+  ): React.ReactElement => (
+    <Field label={label} className={styles.daysField}>
+      <SpinButton
+        value={value}
+        min={1}
+        max={3650}
+        onChange={(_, data) => {
+          const next =
+            data.value ?? (data.displayValue !== undefined ? Number(data.displayValue) : NaN);
+          if (Number.isFinite(next) && next >= 1) {
+            onCommit(Math.floor(next));
+          }
+        }}
+      />
+    </Field>
+  );
 
   const deleteAll = async () => {
     setConfirmOpen(false);
@@ -73,25 +109,67 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
 
   return (
     <div className={styles.root}>
+      <Text weight="semibold">Features</Text>
+      <Text size={200} className={styles.hint}>
+        Keep the pane as simple as you like — anything you turn off disappears from the interface
+        (your data is kept).
+      </Text>
+      <Switch
+        label="Queue (staging list, Q buttons, Queue tab)"
+        checked={prefs?.enableQueue ?? true}
+        onChange={(_, data) => void update({ enableQueue: Boolean(data.checked) })}
+      />
+      <Switch
+        label="Usage sorting (count inserts, sort by Recently/Most used)"
+        checked={prefs?.enableFrecency ?? true}
+        onChange={(_, data) => void update({ enableFrecency: Boolean(data.checked) })}
+      />
       <Switch
         label="Quick Save (skip the form when saving a selection)"
         checked={prefs?.quickSaveMode ?? false}
         onChange={(_, data) => void update({ quickSaveMode: Boolean(data.checked) })}
       />
-      <Text size={200} className={styles.hint}>
-        With Quick Save on, Save Selection names the snippet from its first words and files it into
-        the folder you have open — with an Undo/Edit toast after.
-      </Text>
+      <Switch
+        label="Drag queue items into the document (experimental)"
+        checked={prefs?.enableDocDragDrop ?? true}
+        onChange={(_, data) => void update({ enableDocDragDrop: Boolean(data.checked) })}
+      />
       <Switch
         label="Confirm before creating a new tag"
         checked={prefs ? !prefs.suppressNewTagConfirm : true}
         onChange={(_, data) => void update({ suppressNewTagConfirm: !data.checked })}
       />
+      <Divider />
+      <Text weight="semibold">Snippet freshness</Text>
       <Switch
-        label="Allow dragging queue items into the document (experimental)"
-        checked={prefs?.enableDocDragDrop ?? true}
-        onChange={(_, data) => void update({ enableDocDragDrop: Boolean(data.checked) })}
+        label="Flag stale snippets for review"
+        checked={prefs?.staleReviewEnabled ?? false}
+        onChange={(_, data) => void updateStale({ staleReviewEnabled: Boolean(data.checked) })}
       />
+      {prefs?.staleReviewEnabled && (
+        <>
+          {daysSpinner(
+            "Flag when not edited in (days)",
+            prefs.staleEditedDays,
+            (days) => void updateStale({ staleEditedDays: days })
+          )}
+          {daysSpinner(
+            "Flag when not used in (days)",
+            prefs.staleUnusedDays,
+            (days) => void updateStale({ staleUnusedDays: days })
+          )}
+          <Switch
+            label="Show an alert banner when snippets go stale"
+            checked={prefs.staleAlerts}
+            onChange={(_, data) => void updateStale({ staleAlerts: Boolean(data.checked) })}
+          />
+          <div className={styles.row}>
+            <Button appearance="secondary" onClick={props.onReviewStale}>
+              Review stale snippets ({props.staleCount})
+            </Button>
+          </div>
+        </>
+      )}
       <Divider />
       <Text weight="semibold">Backup &amp; sharing</Text>
       <Text size={200} className={styles.hint}>
