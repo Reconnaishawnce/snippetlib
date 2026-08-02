@@ -4,6 +4,14 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Usability run 1 — capture & insert speed (2026-08-02)
+
+- **Q button**: every snippet row and search result gets a one-click **Q** next to Insert that adds the snippet to the Queue's last-used section — no menu digging.
+- **Insert chains naturally**: after an insert the cursor now lands at the end of the inserted text with a trailing space, so you can insert snippet after snippet without repositioning.
+- **Quick Save mode** (Settings toggle, off by default): Save Selection skips the form — the snippet is named from its first words and filed into the folder you have open, with an Edit/Undo toast after.
+- **Frecency**: inserts are counted per snippet (`useCount` / `lastUsedAt`, never touching the edited date). A new sort control on the Browse list offers Name, **Recently used**, **Most used**, and Newest; the choice is remembered.
+- Backlog: rich text snippets, team library via shared bundle URL, and the Report Builder are recorded in `docs/BACKLOG.md`.
+
 ### M7 — Polish & hardening (2026-08-02)
 
 - Settings tab (§7.10): confirm-before-new-tag and drag-into-document toggles (backed by stored prefs), Export/Import shortcuts with last-full-export date, and a danger-zone **Delete all data** that requires typing `DELETE` and then reseeds a fresh "My Snippets" library.

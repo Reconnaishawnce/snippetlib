@@ -46,6 +46,16 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Usability run 1 — capture & insert speed
+
+- [ ] Q button on a browse row adds the snippet to the Queue (badge increments); with 2+ sections it lands in the last-used section
+- [ ] Q button works on search results too
+- [ ] After Insert, the cursor sits after the inserted text + one space; inserting a second snippet continues cleanly
+- [ ] Insert All still inserts in order with the cursor ending after the last snippet
+- [ ] Settings → Quick Save on: Save Selection creates the snippet instantly (named from first words, filed in the open folder) with an Edit/Undo toast
+- [ ] Quick Save toast: Edit opens the form; Undo removes the snippet
+- [ ] Browse sort control: Recently used / Most used reorder after a few inserts; choice survives a pane reload
+
 ## M7 — Polish & hardening
 
 - [ ] Settings tab: both toggles flip and persist across a pane reload
