@@ -22,7 +22,15 @@ import {
   Library16Regular,
   MoreHorizontal16Regular,
 } from "@fluentui/react-icons";
-import { DndContext, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { useLibraryStore } from "../state/libraryStore";
 import { useSnippetStore } from "../state/snippetStore";
 import {
@@ -185,6 +193,11 @@ export const FolderTree: React.FC = () => {
 
   const { setNodeRef: setRootDropRef, isOver: overRoot } = useDroppable({ id: ROOT_DROP_ID });
 
+  // Without an activation distance, dnd-kit's pointer sensor swallows plain
+  // clicks on draggable rows — folder selection never fired. A drag now only
+  // starts after ~6px of movement; clicks select the folder.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
   if (scope.kind !== "library") {
     return null;
   }
@@ -222,7 +235,7 @@ export const FolderTree: React.FC = () => {
   };
 
   return (
-    <DndContext onDragEnd={onDragEnd}>
+    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className={styles.root}>
         <div
           ref={setRootDropRef}

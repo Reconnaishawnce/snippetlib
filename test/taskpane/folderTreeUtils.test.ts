@@ -6,6 +6,7 @@ import {
   folderPath,
   isSelfOrDescendant,
   recursiveSnippetCounts,
+  subtreeFolderIds,
 } from "../../src/taskpane/state/folderTreeUtils";
 
 const stamp = { createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-01T00:00:00.000Z" };
@@ -80,6 +81,18 @@ describe("recursiveSnippetCounts", () => {
     };
     const counts = recursiveSnippetCounts(folders, [other], "lib");
     expect(counts.size).toBe(0);
+  });
+});
+
+describe("subtreeFolderIds", () => {
+  it("returns the folder and all descendants", () => {
+    expect([...subtreeFolderIds(folders, "findings")].sort()).toEqual([
+      "findings",
+      "physical",
+      "vulns",
+    ]);
+    expect([...subtreeFolderIds(folders, "physical")]).toEqual(["physical"]);
+    expect([...subtreeFolderIds(folders, "appendix")]).toEqual(["appendix"]);
   });
 });
 

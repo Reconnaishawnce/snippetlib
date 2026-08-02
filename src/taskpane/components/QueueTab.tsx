@@ -25,7 +25,15 @@ import {
   ReOrderDotsVertical16Regular,
   TextAdd20Regular,
 } from "@fluentui/react-icons";
-import { DndContext, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import type { QueueSection, Snippet } from "../../models/entities";
 import { resolveContent } from "../../office/placeholderEngine";
 import { usePlaceholderStore } from "../state/placeholderStore";
@@ -230,6 +238,9 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
 
   const sections = displaySections(queue);
 
+  // Clicks on buttons inside draggable rows must not start drags (see FolderTree).
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -315,7 +326,7 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
   }
 
   return (
-    <DndContext onDragEnd={onDragEnd}>
+    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className={styles.root}>
         {sections.map((section) => {
           const isCollapsed = collapsed.has(section.id);

@@ -21,6 +21,7 @@ import { useLibraryStore } from "../state/libraryStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
+import { subtreeFolderIds } from "../state/folderTreeUtils";
 import { AddToQueueMenuItem } from "./AddToQueueMenuItem";
 import { ConfirmDialog } from "./dialogs";
 import { SelectionHeader } from "./SelectionHeader";
@@ -88,19 +89,24 @@ export const SnippetList: React.FC<SnippetListProps> = ({ onEdit, onInsert }) =>
   const [toDelete, setToDelete] = React.useState<Snippet | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
+  const folders = useLibraryStore((s) => s.folders);
+
   const visible = React.useMemo(() => {
     let list = snippets;
     if (scope.kind === "library" && selectedFolderId !== null) {
+      // Folder selection filters to the folder AND its subtree — matching the
+      // recursive count badge on the tree rows (§7.2).
+      const subtree = subtreeFolderIds(folders, selectedFolderId);
       list = snippets.filter((snippet) =>
         snippet.memberships.some(
-          (m) => m.libraryId === scope.libraryId && m.folderId === selectedFolderId
+          (m) => m.libraryId === scope.libraryId && m.folderId !== null && subtree.has(m.folderId)
         )
       );
     }
     // Multi-tag filter, AND semantics (§7.4).
     list = list.filter((snippet) => filterTagIds.every((tagId) => snippet.tagIds.includes(tagId)));
     return [...list].sort((a, b) => a.name.localeCompare(b.name));
-  }, [snippets, scope, selectedFolderId, filterTagIds]);
+  }, [snippets, scope, selectedFolderId, filterTagIds, folders]);
 
   const tagsById = React.useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 

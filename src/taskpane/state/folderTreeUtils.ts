@@ -102,6 +102,29 @@ export function recursiveSnippetCounts(
   return counts;
 }
 
+/** The folder id plus all of its descendants — the browse filter scope (§7.2). */
+export function subtreeFolderIds(folders: Folder[], folderId: string): Set<string> {
+  const byParent = new Map<string | null, Folder[]>();
+  for (const folder of folders) {
+    const list = byParent.get(folder.parentId) ?? [];
+    list.push(folder);
+    byParent.set(folder.parentId, list);
+  }
+  const ids = new Set<string>();
+  const stack = [folderId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    if (ids.has(current)) {
+      continue;
+    }
+    ids.add(current);
+    for (const child of byParent.get(current) ?? []) {
+      stack.push(child.id);
+    }
+  }
+  return ids;
+}
+
 /** Human-readable `Library > Folder > Subfolder` path for a folder. */
 export function folderPath(folders: Folder[], folderId: string | null): string[] {
   if (folderId === null) {
