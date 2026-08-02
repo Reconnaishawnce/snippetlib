@@ -35,5 +35,17 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Deleting a queued snippet from the library shows "(snippet deleted)" in the queue, no crash
 - [ ] Native drag grip into the document: note behavior per platform (Windows / Mac) — this is a bonus path, Insert is the contract
 - [ ] Placeholders tab "Scan snippets" pre-lists all placeholders; unfilled ones still prompt on insert
-- Import/export round-trip between two machines (M6)
+
+## M6 — Import/export & history
+
+- [ ] Gear menu → Export everything downloads `reportsnips-export-YYYYMMDD.json`
+- [ ] Round-trip: export on machine A, import on machine B — libraries, folder paths, tags, and snippets (with history) reconstruct
+- [ ] Importing the same file again previews conflicts; **Keep Both** creates "… (imported)" copies; Keep Mine skips; Take Theirs overwrites
+- [ ] A non-JSON or wrong-shape file shows a readable error, not a stack trace
+- [ ] Backup banner appears when the library was never exported (or is stale); "Back up now" downloads and clears it
+- [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
+- [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
+
+## Later milestones
+
 - Dark mode pass; 320 px width pass (M7)

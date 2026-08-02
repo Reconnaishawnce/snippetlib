@@ -4,6 +4,13 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### M6 — Import/export & history (2026-08-02)
+
+- Export (§7.8): everything, a single library, or explicit snippets (per-row Export) to `reportsnips-export-YYYYMMDD.json` — formatVersion 1 bundles containing only the referenced tags, libraries, and folder chains, with snippet history included.
+- Import: file picker → zod validation with readable errors → preview (new / conflicting / new tags / new libraries) → conflict policy for id matches: **Keep Both** (default, imports "… (imported)" copies), Keep Mine, or Take Theirs. Libraries and tags merge by case-insensitive name; folder paths are rebuilt by name in the target library, creating missing folders.
+- Backup nudge (§3): dismissible banner with one-click "Back up now" when the library has never been exported, the last export is >7 days old, or >25 changes have accumulated; full exports reset the counter.
+- Revision history (§7.9): content edits ask **Update Snippet** (pushes the previous version onto a 3-deep history) or **Save as New Snippet** (same tags/targets, empty history) — the Dice-bigram similarity heuristic highlights Save as New below 0.6 with "This looks like a substantially different snippet." History viewer per snippet with Restore (restoring pushes the current state onto history).
+
 ### M5 — Queue (2026-08-01)
 
 - The Queue tab (§7.7): per-document staging list stored in the Word file's settings; user-named collapsible sections (default "Queue"), un-inserted count badge on the tab and per section.
