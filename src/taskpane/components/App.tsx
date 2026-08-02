@@ -19,12 +19,18 @@ import {
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
-import { Add16Regular, Dismiss16Regular } from "@fluentui/react-icons";
+import {
+  Add16Regular,
+  Dismiss16Regular,
+  QuestionCircle20Regular,
+  Settings20Regular,
+} from "@fluentui/react-icons";
 import type { Folder, Snippet } from "../../models/entities";
 import { getSelectedText, insertText } from "../../office/documentIO";
 import type { ParsedPlaceholder } from "../../office/placeholderEngine";
 import { useLibraryStore } from "../state/libraryStore";
 import { usePlaceholderStore } from "../state/placeholderStore";
+import { usePrefsStore } from "../state/prefsStore";
 import { useQueueStore } from "../state/queueStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
@@ -41,7 +47,10 @@ import { HistoryDialog } from "./HistoryDialog";
 import { ImportDialog } from "./ImportDialog";
 import { PlaceholderDialog } from "./PlaceholderDialog";
 import { PlaceholdersTab } from "./PlaceholdersTab";
+import { HelpTab } from "./HelpTab";
+import { MoveToDialog } from "./MoveToDialog";
 import { QueueTab } from "./QueueTab";
+import { SettingsTab } from "./SettingsTab";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
 import { SnippetList } from "./SnippetList";
@@ -81,6 +90,11 @@ const useStyles = makeStyles({
   divider: {
     flexGrow: 0,
   },
+  // Six tabs overflow a very narrow pane (~320px); wrapping beats clipping the
+  // Settings/Help icons and dragging the pane into horizontal scroll.
+  tabs: {
+    flexWrap: "wrap",
+  },
 });
 
 interface FormSession {
@@ -102,12 +116,15 @@ const App: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<FormSession | null>(null);
   const [allFolders, setAllFolders] = React.useState<Folder[]>([]);
-  const [tab, setTab] = React.useState<"browse" | "queue" | "placeholders" | "tags">("browse");
+  const [tab, setTab] = React.useState<
+    "browse" | "queue" | "placeholders" | "tags" | "settings" | "help"
+  >("browse");
   const searchQuery = useSearchStore((s) => s.query);
   const searching = searchQuery.trim().length > 0;
   const queue = useQueueStore((s) => s.queue);
   const queueBadge = unInsertedCount(queue);
-  const [dragToDocEnabled, setDragToDocEnabled] = React.useState(false);
+  const prefs = usePrefsStore((s) => s.prefs);
+  const dragToDocEnabled = prefs?.enableDocDragDrop ?? true;
   const [pendingInsert, setPendingInsert] = React.useState<{
     snippets: Snippet[];
     missing: ParsedPlaceholder[];
@@ -116,6 +133,7 @@ const App: React.FC = () => {
   const [notice, setNotice] = React.useState<string | null>(null);
   const [importOpen, setImportOpen] = React.useState(false);
   const [historyFor, setHistoryFor] = React.useState<Snippet | null>(null);
+  const [moveFor, setMoveFor] = React.useState<Snippet | null>(null);
   const [backupDue, setBackupDue] = React.useState(false);
   const [pendingEdit, setPendingEdit] = React.useState<{
     previous: Snippet;
@@ -134,10 +152,7 @@ const App: React.FC = () => {
     } catch {
       // Doc settings unavailable (e.g. outside Word) — doc-scoped state starts empty.
     }
-    getStorage()
-      .getPrefs()
-      .then((p) => setDragToDocEnabled(p.enableDocDragDrop))
-      .catch(() => setDragToDocEnabled(false));
+    void usePrefsStore.getState().load();
   }, [init]);
 
   const refreshBackupNudge = React.useCallback(async () => {
@@ -420,6 +435,7 @@ const App: React.FC = () => {
             onEdit={onEdit}
             onInsert={onInsert}
             onHistory={setHistoryFor}
+            onMove={setMoveFor}
             onExport={(snippets) => void onExport({ snippetIds: snippets.map((s) => s.id) })}
           />
         </div>
@@ -429,13 +445,11 @@ const App: React.FC = () => {
             selectedValue={tab}
             onTabSelect={(_, data) => {
               const value = String(data.value);
-              setTab(
-                value === "tags" || value === "placeholders" || value === "queue"
-                  ? (value as "queue" | "placeholders" | "tags")
-                  : "browse"
-              );
+              const known = ["browse", "queue", "placeholders", "tags", "settings", "help"];
+              setTab(known.includes(value) ? (value as typeof tab) : "browse");
             }}
             size="small"
+            className={styles.tabs}
           >
             <Tab value="browse">Browse</Tab>
             <Tab value="queue">
@@ -444,6 +458,8 @@ const App: React.FC = () => {
             </Tab>
             <Tab value="placeholders">Placeholders</Tab>
             <Tab value="tags">Tags</Tab>
+            <Tab value="settings" aria-label="Settings" icon={<Settings20Regular />} />
+            <Tab value="help" aria-label="Help" icon={<QuestionCircle20Regular />} />
           </TabList>
           <div className={styles.content}>
             {tab === "browse" ? (
@@ -454,6 +470,7 @@ const App: React.FC = () => {
                   onEdit={onEdit}
                   onInsert={onInsert}
                   onHistory={setHistoryFor}
+                  onMove={setMoveFor}
                   onExport={(snippets) => void onExport({ snippetIds: snippets.map((s) => s.id) })}
                 />
               </>
@@ -465,8 +482,16 @@ const App: React.FC = () => {
               />
             ) : tab === "placeholders" ? (
               <PlaceholdersTab />
-            ) : (
+            ) : tab === "tags" ? (
               <TagManager />
+            ) : tab === "settings" ? (
+              <SettingsTab
+                onExportAll={() => void onExport({})}
+                onImport={() => setImportOpen(true)}
+                onError={setError}
+              />
+            ) : (
+              <HelpTab />
             )}
           </div>
         </>
@@ -507,6 +532,17 @@ const App: React.FC = () => {
             `Import complete: ${parts.length > 0 ? parts.join(", ") : "nothing to change"}.`
           );
           void refreshBackupNudge();
+        }}
+      />
+
+      <MoveToDialog
+        snippet={moveFor}
+        onClose={() => setMoveFor(null)}
+        onSave={(snippet, memberships) => {
+          setMoveFor(null);
+          void saveEdit({ ...snippet, memberships }).catch((e: unknown) =>
+            setError(`Move failed: ${e instanceof Error ? e.message : String(e)}`)
+          );
         }}
       />
 

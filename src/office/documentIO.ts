@@ -45,6 +45,30 @@ export function readDocSettings<T>(key: string, schema: z.ZodType<T>): T | undef
   return parsed.success ? parsed.data : undefined;
 }
 
+/**
+ * Whether Word's own theme is dark, judged by its body background luminance.
+ * Undefined when the host doesn't expose a theme (e.g. outside Office).
+ */
+export function isOfficeThemeDark(): boolean | undefined {
+  try {
+    const theme = Office.context?.officeTheme;
+    const background = theme?.bodyBackgroundColor;
+    if (!background) {
+      return undefined;
+    }
+    const hex = background.replace("#", "");
+    if (hex.length < 6) {
+      return undefined;
+    }
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return 0.299 * r + 0.587 * g + 0.114 * b < 128;
+  } catch {
+    return undefined;
+  }
+}
+
 const SAVE_DEBOUNCE_MS = 2000;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
