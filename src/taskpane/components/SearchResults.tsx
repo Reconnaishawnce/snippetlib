@@ -29,6 +29,7 @@ import { useTagStore } from "../state/tagStore";
 import { getStorage } from "../state/storage";
 import { folderPath } from "../state/folderTreeUtils";
 import { AddToQueueMenuItem } from "./AddToQueueMenuItem";
+import { QuickQueueButton } from "./QuickQueueButton";
 import { ConfirmDialog } from "./dialogs";
 import { SelectionHeader } from "./SelectionHeader";
 
@@ -239,6 +240,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   onClick={() => onInsert([snippet])}
                 />
               </Tooltip>
+              <QuickQueueButton snippetId={snippet.id} snippetName={snippet.name} />
               <Popover withArrow>
                 <PopoverTrigger disableButtonEnhancement>
                   <Button

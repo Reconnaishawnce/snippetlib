@@ -7,6 +7,7 @@ import {
   Checkbox,
   Menu,
   MenuItem,
+  MenuItemRadio,
   MenuList,
   MenuPopover,
   MenuTrigger,
@@ -15,14 +16,21 @@ import {
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
-import { MoreHorizontal16Regular, TextAdd20Regular } from "@fluentui/react-icons";
-import type { Snippet } from "../../models/entities";
+import {
+  ArrowSortDownLines16Regular,
+  MoreHorizontal16Regular,
+  TextAdd20Regular,
+} from "@fluentui/react-icons";
+import type { BrowseSort, Snippet } from "../../models/entities";
 import { useLibraryStore } from "../state/libraryStore";
+import { usePrefsStore } from "../state/prefsStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
 import { subtreeFolderIds } from "../state/folderTreeUtils";
+import { BROWSE_SORT_LABELS, sortSnippets } from "../state/sortSnippets";
 import { AddToQueueMenuItem } from "./AddToQueueMenuItem";
+import { QuickQueueButton } from "./QuickQueueButton";
 import { ConfirmDialog } from "./dialogs";
 import { SelectionHeader } from "./SelectionHeader";
 import { Tag } from "@fluentui/react-components";
@@ -71,6 +79,14 @@ const useStyles = makeStyles({
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
   },
+  sortRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: tokens.spacingHorizontalXS,
+  },
+  sortRowGrow: {
+    flexGrow: 1,
+  },
 });
 
 export interface SnippetListProps {
@@ -99,6 +115,8 @@ export const SnippetList: React.FC<SnippetListProps> = ({
   const tags = useTagStore((s) => s.tags);
   const [toDelete, setToDelete] = React.useState<Snippet | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const sort = usePrefsStore((s) => s.prefs?.browseSort ?? "name");
+  const updatePrefs = usePrefsStore((s) => s.update);
 
   const folders = useLibraryStore((s) => s.folders);
 
@@ -116,8 +134,8 @@ export const SnippetList: React.FC<SnippetListProps> = ({
     }
     // Multi-tag filter, AND semantics (§7.4).
     list = list.filter((snippet) => filterTagIds.every((tagId) => snippet.tagIds.includes(tagId)));
-    return [...list].sort((a, b) => a.name.localeCompare(b.name));
-  }, [snippets, scope, selectedFolderId, filterTagIds, folders]);
+    return sortSnippets(list, sort);
+  }, [snippets, scope, selectedFolderId, filterTagIds, folders, sort]);
 
   const tagsById = React.useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
@@ -153,11 +171,44 @@ export const SnippetList: React.FC<SnippetListProps> = ({
 
   return (
     <div className={styles.list}>
-      <SelectionHeader
-        count={selectedIds.size}
-        onInsertAll={insertSelected}
-        onClear={() => setSelectedIds(new Set())}
-      />
+      <div className={styles.sortRow}>
+        <div className={styles.sortRowGrow}>
+          <SelectionHeader
+            count={selectedIds.size}
+            onInsertAll={insertSelected}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        </div>
+        <Menu
+          checkedValues={{ sort: [sort] }}
+          onCheckedValueChange={(_, data) => {
+            const chosen = data.checkedItems[0] as BrowseSort | undefined;
+            if (chosen) {
+              void updatePrefs({ browseSort: chosen });
+            }
+          }}
+        >
+          <MenuTrigger disableButtonEnhancement>
+            <Tooltip content={`Sort: ${BROWSE_SORT_LABELS[sort]}`} relationship="label">
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<ArrowSortDownLines16Regular />}
+                aria-label="Sort snippets"
+              />
+            </Tooltip>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              {(Object.keys(BROWSE_SORT_LABELS) as BrowseSort[]).map((key) => (
+                <MenuItemRadio key={key} name="sort" value={key}>
+                  {BROWSE_SORT_LABELS[key]}
+                </MenuItemRadio>
+              ))}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
+      </div>
       {visible.map((snippet) => (
         <Card
           key={snippet.id}
@@ -186,6 +237,7 @@ export const SnippetList: React.FC<SnippetListProps> = ({
                 onClick={() => onInsert([snippet])}
               />
             </Tooltip>
+            <QuickQueueButton snippetId={snippet.id} snippetName={snippet.name} />
             <Menu>
               <MenuTrigger disableButtonEnhancement>
                 <Button
