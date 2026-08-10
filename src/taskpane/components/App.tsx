@@ -25,7 +25,7 @@ import {
   QuestionCircle20Regular,
   Settings20Regular,
 } from "@fluentui/react-icons";
-import type { Folder, Snippet, SnippetMembership } from "../../models/entities";
+import type { ExportBundle, Folder, Snippet, SnippetMembership } from "../../models/entities";
 import { getSelectedText, insertText } from "../../office/documentIO";
 import type { ParsedPlaceholder } from "../../office/placeholderEngine";
 import { useLibraryStore } from "../state/libraryStore";
@@ -40,6 +40,7 @@ import { backupNudgeDue, exportAndDownload } from "../state/importExportActions"
 import { unInsertedCount } from "../state/queueOps";
 import { deriveDefaultName } from "../state/snippetName";
 import { findStaleSnippets, type StaleResult } from "../state/staleness";
+import { fetchTeamBundle, isBundleNew } from "../state/teamLibrary";
 import { getStorage } from "../state/storage";
 import { SAVE_AS_NEW_THRESHOLD, diceSimilarity } from "../../importexport/similarity";
 import { LibrarySwitcher } from "./LibrarySwitcher";
@@ -141,6 +142,9 @@ const App: React.FC = () => {
   const [backupDue, setBackupDue] = React.useState(false);
   const [staleResults, setStaleResults] = React.useState<StaleResult[]>([]);
   const [staleReviewOpen, setStaleReviewOpen] = React.useState(false);
+  /** A fetched team bundle that is newer than the last pull — drives the banner. */
+  const [teamBundle, setTeamBundle] = React.useState<ExportBundle | null>(null);
+  const [teamImportOpen, setTeamImportOpen] = React.useState(false);
   const enableQueue = prefs?.enableQueue ?? true;
   const [pendingEdit, setPendingEdit] = React.useState<{
     previous: Snippet;
@@ -190,6 +194,43 @@ const App: React.FC = () => {
       void refreshBackupNudge();
     }
   }, [initialized, refreshBackupNudge]);
+
+  /**
+   * Fetches the team bundle and reports. Manual checks surface errors and
+   * "up to date"; the automatic launch check stays silent unless there IS
+   * an update (opt-in feature, no nagging — ADR-006).
+   */
+  const checkTeamLibrary = React.useCallback(async (manual: boolean) => {
+    const current = usePrefsStore.getState().prefs;
+    if (!current?.enableTeamLibrary || !current.teamLibraryUrl) {
+      return;
+    }
+    const result = await fetchTeamBundle(current.teamLibraryUrl);
+    await usePrefsStore.getState().update({ teamLibraryLastCheckedAt: new Date().toISOString() });
+    if (!result.ok) {
+      if (manual) {
+        setError(result.error);
+      }
+      return;
+    }
+    if (isBundleNew(result.bundle, current.teamLibraryLastPulledAt)) {
+      setTeamBundle(result.bundle);
+      if (manual) {
+        setTeamImportOpen(true);
+      }
+    } else {
+      setTeamBundle(null);
+      if (manual) {
+        setNotice("Team library is up to date — nothing new to pull.");
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (initialized) {
+      void checkTeamLibrary(false);
+    }
+  }, [initialized, checkTeamLibrary]);
 
   const onExport = async (selection: {
     libraryIds?: string[];
@@ -498,6 +539,25 @@ const App: React.FC = () => {
             </MessageBarActions>
           </MessageBar>
         )}
+        {teamBundle && !teamImportOpen && !notice && !quickSaved && (
+          <MessageBar intent="info">
+            <MessageBarBody>Your team library has updates.</MessageBarBody>
+            <MessageBarActions
+              containerAction={
+                <Button
+                  appearance="transparent"
+                  icon={<Dismiss16Regular />}
+                  aria-label="Dismiss team library update"
+                  onClick={() => setTeamBundle(null)}
+                />
+              }
+            >
+              <Button appearance="secondary" size="small" onClick={() => setTeamImportOpen(true)}>
+                Review &amp; pull
+              </Button>
+            </MessageBarActions>
+          </MessageBar>
+        )}
         {(prefs?.staleReviewEnabled ?? false) &&
           (prefs?.staleAlerts ?? true) &&
           staleResults.length > 0 &&
@@ -620,6 +680,7 @@ const App: React.FC = () => {
                 staleCount={staleResults.length}
                 onReviewStale={() => setStaleReviewOpen(true)}
                 onStaleSettingsChanged={() => void refreshBackupNudge()}
+                onTeamCheckNow={() => checkTeamLibrary(true)}
               />
             ) : (
               <HelpTab />
@@ -662,6 +723,24 @@ const App: React.FC = () => {
           setNotice(
             `Import complete: ${parts.length > 0 ? parts.join(", ") : "nothing to change"}.`
           );
+          void refreshBackupNudge();
+        }}
+      />
+
+      <ImportDialog
+        open={teamImportOpen}
+        sourceBundle={teamBundle}
+        onClose={() => setTeamImportOpen(false)}
+        onError={setError}
+        onDone={(result) => {
+          const pulled = teamBundle;
+          setTeamImportOpen(false);
+          setTeamBundle(null);
+          if (pulled) {
+            void usePrefsStore.getState().update({ teamLibraryLastPulledAt: pulled.exportedAt });
+          }
+          const added = result.snippetsAdded + result.snippetsCopied;
+          setNotice(`Pulled the team library: ${added} added, ${result.snippetsUpdated} updated.`);
           void refreshBackupNudge();
         }}
       />

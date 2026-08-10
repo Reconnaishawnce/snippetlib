@@ -48,7 +48,9 @@ export const HelpTab: React.FC = () => {
         Your library is stored locally in Word&apos;s browser storage — export regularly (Settings,
         or the gear menu). The same file imports on any machine, so it&apos;s also how teams share:
         one curator imports everyone&apos;s exports with &ldquo;Keep both&rdquo; and re-exports the
-        master copy.
+        master copy. For hands-off sharing, turn on <strong>Team library</strong> in Settings →
+        Features: the curator publishes the export file at any HTTPS link, teammates paste that link
+        once, and ReportSnips offers to pull whenever the file changes.
       </Text>
       <Text weight="semibold">Installing for teammates</Text>
       <Text size={200}>

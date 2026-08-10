@@ -35,6 +35,8 @@ export interface ImportDialogProps {
   onClose: () => void;
   onError: (message: string) => void;
   onDone: (result: ImportResult) => void;
+  /** Pre-validated bundle (team library pull): skips the file picker. */
+  sourceBundle?: ExportBundle | null;
 }
 
 export const ImportDialog: React.FC<ImportDialogProps> = (props) => {
@@ -45,15 +47,38 @@ export const ImportDialog: React.FC<ImportDialogProps> = (props) => {
   const [policy, setPolicy] = React.useState<ImportConflictPolicy>("keep-both");
   const [busy, setBusy] = React.useState(false);
 
-  // Reset and immediately open the file picker each time the dialog opens.
+  const previewBundle = React.useCallback(async (validated: ExportBundle) => {
+    const storage = getStorage();
+    const [snippets, tags, libraries] = await Promise.all([
+      storage.getAllSnippets(),
+      storage.getAllTags(),
+      storage.getAllLibraries(),
+    ]);
+    setBundle(validated);
+    setPreview(
+      planImport(validated, {
+        snippetIds: new Set(snippets.map((s) => s.id)),
+        tagNamesLower: new Set(tags.map((t) => t.name.toLowerCase())),
+        libraryNamesLower: new Set(libraries.map((l) => l.name.toLowerCase())),
+      })
+    );
+  }, []);
+
+  // Reset on open, then either preview the supplied bundle (team library pull)
+  // or open the file picker.
   React.useEffect(() => {
     if (props.open) {
       setBundle(null);
       setPreview(null);
       setPolicy("keep-both");
       setBusy(false);
-      fileRef.current?.click();
+      if (props.sourceBundle) {
+        void previewBundle(props.sourceBundle);
+      } else {
+        fileRef.current?.click();
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.open]);
 
   const onFile = async (file: File | undefined) => {
@@ -68,20 +93,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = (props) => {
       props.onError(parsed.error);
       return;
     }
-    const storage = getStorage();
-    const [snippets, tags, libraries] = await Promise.all([
-      storage.getAllSnippets(),
-      storage.getAllTags(),
-      storage.getAllLibraries(),
-    ]);
-    setBundle(parsed.bundle);
-    setPreview(
-      planImport(parsed.bundle, {
-        snippetIds: new Set(snippets.map((s) => s.id)),
-        tagNamesLower: new Set(tags.map((t) => t.name.toLowerCase())),
-        libraryNamesLower: new Set(libraries.map((l) => l.name.toLowerCase())),
-      })
-    );
+    await previewBundle(parsed.bundle);
   };
 
   const run = async () => {

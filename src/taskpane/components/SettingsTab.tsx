@@ -54,6 +54,8 @@ export interface SettingsTabProps {
   onReviewStale: () => void;
   /** Called after any pref change that affects staleness, so App recomputes. */
   onStaleSettingsChanged: () => void;
+  /** Manual team-library check (App owns the fetch/banner/import flow). */
+  onTeamCheckNow: () => Promise<void>;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
@@ -61,6 +63,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
   const { prefs, load, update } = usePrefsStore();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmText, setConfirmText] = React.useState("");
+  const [urlDraft, setUrlDraft] = React.useState<string | null>(null);
+  const [checking, setChecking] = React.useState(false);
+
+  const urlValue = urlDraft ?? prefs?.teamLibraryUrl ?? "";
+  const urlValid = React.useMemo(() => {
+    if (!urlValue.trim()) {
+      return false;
+    }
+    try {
+      return new URL(urlValue).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, [urlValue]);
+  /* global URL */
 
   React.useEffect(() => {
     if (!prefs) {
@@ -139,6 +156,66 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
         checked={prefs ? !prefs.suppressNewTagConfirm : true}
         onChange={(_, data) => void update({ suppressNewTagConfirm: !data.checked })}
       />
+      <Switch
+        label="Team library (pull shared snippets from a URL)"
+        checked={prefs?.enableTeamLibrary ?? false}
+        onChange={(_, data) => void update({ enableTeamLibrary: Boolean(data.checked) })}
+      />
+      {prefs?.enableTeamLibrary && (
+        <>
+          <Divider />
+          <Text weight="semibold">Team library</Text>
+          <Text size={200} className={styles.hint}>
+            Paste the HTTPS link to your team&apos;s exported .json (a GitHub raw link, GitHub
+            Pages, SharePoint — anywhere that allows cross-origin downloads). ReportSnips checks it
+            when the pane opens and offers to pull anything new; your own snippets are never changed
+            without the import preview.
+          </Text>
+          <Field
+            label="Shared bundle URL"
+            validationState={urlValue && !urlValid ? "error" : "none"}
+            validationMessage={
+              urlValue && !urlValid ? "Enter a full https:// link to the .json file." : undefined
+            }
+          >
+            <Input
+              value={urlValue}
+              placeholder="https://…/reportsnips-export.json"
+              onChange={(_, data) => setUrlDraft(data.value)}
+            />
+          </Field>
+          <div className={styles.row}>
+            <Button
+              appearance="secondary"
+              disabled={urlDraft === null || (urlValue.trim() !== "" && !urlValid)}
+              onClick={() => {
+                void update({ teamLibraryUrl: urlValue.trim() === "" ? null : urlValue.trim() });
+                setUrlDraft(null);
+              }}
+            >
+              Save URL
+            </Button>
+            <Button
+              appearance="secondary"
+              disabled={!prefs.teamLibraryUrl || checking}
+              onClick={() => {
+                setChecking(true);
+                void props.onTeamCheckNow().finally(() => setChecking(false));
+              }}
+            >
+              {checking ? "Checking…" : "Check for updates"}
+            </Button>
+          </div>
+          <Text size={200} className={styles.hint}>
+            {prefs.teamLibraryLastCheckedAt
+              ? `Last checked ${new Date(prefs.teamLibraryLastCheckedAt).toLocaleString()}. `
+              : "Not checked yet. "}
+            {prefs.teamLibraryLastPulledAt
+              ? `Last pulled a bundle exported ${new Date(prefs.teamLibraryLastPulledAt).toLocaleString()}.`
+              : "Nothing pulled yet."}
+          </Text>
+        </>
+      )}
       <Divider />
       <Text weight="semibold">Snippet freshness</Text>
       <Switch
