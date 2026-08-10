@@ -44,6 +44,10 @@ const DEFAULT_PREFS: AppPrefs = {
   staleEditedDays: 180,
   staleUnusedDays: 90,
   staleAlerts: true,
+  enableTeamLibrary: false, // opt-in — all team-library UI hidden until on
+  teamLibraryUrl: null,
+  teamLibraryLastCheckedAt: null,
+  teamLibraryLastPulledAt: null,
 };
 
 export interface IndexedDbProviderOptions {
@@ -501,6 +505,10 @@ export class IndexedDbProvider implements StorageProvider {
       staleEditedDays: row.staleEditedDays ?? 180,
       staleUnusedDays: row.staleUnusedDays ?? 90,
       staleAlerts: row.staleAlerts ?? true,
+      enableTeamLibrary: row.enableTeamLibrary ?? false,
+      teamLibraryUrl: row.teamLibraryUrl ?? null,
+      teamLibraryLastCheckedAt: row.teamLibraryLastCheckedAt ?? null,
+      teamLibraryLastPulledAt: row.teamLibraryLastPulledAt ?? null,
     };
   }
 

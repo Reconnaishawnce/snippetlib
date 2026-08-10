@@ -268,6 +268,10 @@ describe("prefs", () => {
       staleEditedDays: 180,
       staleUnusedDays: 90,
       staleAlerts: true,
+      enableTeamLibrary: false,
+      teamLibraryUrl: null,
+      teamLibraryLastCheckedAt: null,
+      teamLibraryLastPulledAt: null,
     });
 
     const updated = await storage.updatePrefs({ suppressNewTagConfirm: true });

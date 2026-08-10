@@ -116,6 +116,13 @@ export interface AppPrefs {
   staleUnusedDays: number;
   /** true: show a banner when stale snippets exist; false: manual review from Settings only. */
   staleAlerts: boolean;
+  // Team library (opt-in, ADR-006): a curator-published bundle URL this
+  // machine can pull updates from. All UI hidden until the switch is on.
+  enableTeamLibrary: boolean;
+  teamLibraryUrl: string | null;
+  teamLibraryLastCheckedAt: string | null;
+  /** exportedAt of the bundle we last pulled — newer remote exportedAt = update available. */
+  teamLibraryLastPulledAt: string | null;
 }
 
 /**

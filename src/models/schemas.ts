@@ -78,6 +78,10 @@ export const appPrefsSchema = z.object({
   staleEditedDays: z.number().int().positive(),
   staleUnusedDays: z.number().int().positive(),
   staleAlerts: z.boolean(),
+  enableTeamLibrary: z.boolean(),
+  teamLibraryUrl: z.string().url().nullable(),
+  teamLibraryLastCheckedAt: isoDateString.nullable(),
+  teamLibraryLastPulledAt: isoDateString.nullable(),
 });
 
 export const queueTemplateSectionSchema = z.object({
