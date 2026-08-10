@@ -4,6 +4,11 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Run 3 — team library via shared URL (2026-08-02)
+
+- **Team library** (opt-in, Settings → Features → "Team library"): a curator publishes the ordinary export .json at any HTTPS link (GitHub raw/Pages, SharePoint, intranet); teammates paste the link once. The pane checks quietly on open and shows a "Your team library has updates" banner when the file's export date is newer than the last pull; "Review & pull" runs the normal import preview (Keep Both default) so local snippets are never changed blindly. Manual "Check for updates" and last-checked/last-pulled stamps live in the new Settings section. Everything is hidden until the switch is on; fetch failures give readable messages (CORS/404/invalid file) and the automatic check never nags.
+- Backlog item "Team library via shared bundle URL" shipped.
+
 ### Usability run 2 — right-click save, freshness review, templates, feature toggles (2026-08-02)
 
 - **Right-click "Save to ReportSnips"** (requires re-sideloading the manifest): selecting text and right-clicking now offers a save command that opens the pane straight into the save flow — the form, or an instant Quick Save when that mode is on.

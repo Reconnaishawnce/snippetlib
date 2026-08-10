@@ -28,6 +28,8 @@ Snippets are plain text by design (CLAUDE.md rule 5). Real reports use bold head
 
 A curator publishes the export JSON to any HTTPS URL (SharePoint, GitHub, intranet); teammates paste the URL once in Settings. The pane checks it and offers "Team library updated — pull changes?" through the existing import/conflict machinery. No backend to run; makes sharing continuous instead of email-a-file.
 
+**Shipped 2026-08-02 (run 3)**, behind the opt-in "Team library" feature switch (ADR-006).
+
 ## Report Builder (plan v3.0)
 
 **Requested:** 2026-08-02 (project owner — accepted as backlog)

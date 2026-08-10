@@ -46,6 +46,16 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Run 3 — team library via shared URL
+
+- [ ] Settings → Features: "Team library" switch is OFF by default and no team UI exists anywhere
+- [ ] Switch on → Team library section appears (URL field, Check for updates, stamps)
+- [ ] Publish an export somewhere reachable (e.g. a GitHub raw link), paste the URL, Save URL, Check for updates → import preview opens; Import pulls the snippets into the named libraries
+- [ ] Check again immediately → "up to date" notice, no dialog
+- [ ] Curator re-exports with a change and replaces the file → reopening the pane shows the update banner; Review & pull works
+- [ ] A wrong URL (404) or non-JSON file shows a readable error on manual check, and stays silent on the automatic launch check
+- [ ] Switch the feature off → section and banner disappear (URL is kept for later)
+
 ## Usability run 2 — right-click save, freshness, templates, toggles
 
 **Re-sideload the manifest first** (the context menu is a manifest change): remove and re-add `manifest.xml` per docs/SIDELOADING.md, then restart Word.
