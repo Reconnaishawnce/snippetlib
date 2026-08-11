@@ -37,3 +37,15 @@ A curator publishes the export JSON to any HTTPS URL (SharePoint, GitHub, intran
 The Queue grows into a report outline: sections with headings, snippets slotted underneath, placeholders filled once up front, then "Generate" writes the whole skeleton document in order. The plan's stated end goal (TECH_PLAN §1); queue sections, doc-scoped state, and the placeholder engine were designed to grow into it.
 
 **v1 shipped 2026-08-11 (run 4a)** as marker-based generation (`{{Section}}` replacement, per-section table/paragraph layout, fix-or-skip for missing markers). Owner-directed design: the document template owns headings; generation fills content. **Run 4b shipped 2026-08-11:** the drag-and-drop builder window (outline left with rename/layout/reorder, library browse + search right, Save-to-queue round-trip preserving inserted flags). **Future:** snippet names as real Word sub-headings.
+
+## Builder: editable table format per section (and globally)
+
+**Requested:** 2026-08-11 (project owner)
+
+The generated table layout is fixed at 2 columns (name | content). Wanted: control over the table format from the builder — per section, with a global default. Scope to define: column set (e.g. hide the name column, add a severity column), column widths, header row on/off, maybe style. Likely lands as a "layout options" popover on each builder section.
+
+## Findings model: vulnerability + action plan + evidence
+
+**Requested:** 2026-08-11 (project owner — needs design discussion before building)
+
+A "finding" is a structured unit: **title + vulnerability + action plan + evidence**. In the builder, under a section header, you'd pick the vulnerability snippet and then assemble its action plan. Key owner insight: action plans should be **tied to vulnerabilities** — if vulnerability ABV is found, the linked action-plan snippets XYZ/ZDF/PRT are offered as selectable options (one or several) rather than hunting folders. Open design questions for the discussion: whether a finding is a new entity type or a convention over snippets + links; how snippet-to-snippet links are stored/exported; how findings render in generation (probably a per-finding table block); how evidence (likely images later) fits the plain-text constraint.
