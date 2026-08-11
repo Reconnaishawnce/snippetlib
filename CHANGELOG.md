@@ -4,6 +4,13 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Run 4b — the drag-and-drop report builder window (2026-08-11)
+
+- **Builder…** (Queue tab) opens a separate, full-size window: your **report outline on the left** (sections with inline rename, Table/Paragraphs layout, reorder, remove) and the **snippet library on the right** (library picker, folder tree, search). Drag snippets onto a section — or click **+** — to slot them in.
+- **Load outline** pulls any saved queue template in as a starting skeleton, so each person can keep their own report structures.
+- **Save to queue** hands the outline back to the pane: the queue is replaced by what you built (surviving items keep their inserted/struck-through state), ready for **Generate report**. Cancel or closing the window changes nothing.
+- The current queue rides into the window automatically, so the builder is also an "advanced mode" view of the queue you already have.
+
 ### Run 4a — report generation from {{markers}} (2026-08-11)
 
 - **Generate report** (Queue tab): your report template carries `{{Section Name}}` markers; Generate replaces each marker with that queue section's snippets. Placeholders across the whole report are collected in **one** dialog up front; values are remembered per document as usual.

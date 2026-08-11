@@ -46,6 +46,17 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Run 4b — the report builder window
+
+- [ ] Queue tab → Builder… opens a large separate window (both with an empty queue and a populated one; current sections appear on the left)
+- [ ] Right side: library dropdown, folder tree (select a folder → filters), search box all narrow the snippet list
+- [ ] Dragging a snippet onto a section adds it; the + button adds to the first section (creating one if the outline is empty)
+- [ ] Sections: inline rename, Table/Paragraphs dropdown, up/down reorder, delete; items: up/down and remove
+- [ ] Load outline appends a saved template's sections
+- [ ] Save to queue closes the window and the pane's queue matches the outline — previously inserted items keep their strikethrough
+- [ ] Cancel (or closing the window with X) leaves the queue untouched
+- [ ] Builder outline → Generate report fills {{markers}} end to end
+
 ## Run 4a — report generation from {{markers}}
 
 - [ ] Make a doc with `{{Queue}}` (or your section names) in the body; queue 2+ snippets; Generate report → the marker is replaced by a 2-column table (name | content) in marker position
