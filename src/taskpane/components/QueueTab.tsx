@@ -5,6 +5,7 @@ import {
   Caption1,
   Menu,
   MenuItem,
+  MenuItemRadio,
   MenuList,
   MenuPopover,
   MenuTrigger,
@@ -34,7 +35,8 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import type { QueueSection, QueueTemplate, Snippet } from "../../models/entities";
+import type { QueueSection, QueueTemplate, SectionLayout, Snippet } from "../../models/entities";
+import { DEFAULT_SECTION_LAYOUT } from "../state/reportPlan";
 import { resolveContent } from "../../office/placeholderEngine";
 import { usePlaceholderStore } from "../state/placeholderStore";
 import { useQueueStore } from "../state/queueStore";
@@ -109,6 +111,10 @@ const useStyles = makeStyles({
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
   },
+  generateRow: {
+    display: "flex",
+    justifyContent: "flex-end",
+  },
   addSectionRow: {
     display: "flex",
     justifyContent: "flex-start",
@@ -120,6 +126,8 @@ export interface QueueTabProps {
   onInsert: (snippets: Snippet[], onDone?: () => void) => void;
   onGoToSnippet: (snippet: Snippet) => void;
   dragToDocEnabled: boolean;
+  /** Report builder v1: fill every {{Section}} marker in the document. */
+  onGenerateReport: () => void;
 }
 
 interface ItemRowProps extends QueueTabProps {
@@ -227,6 +235,7 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
   const queue = useQueueStore((s) => s.queue);
   const { addSection, renameSection, deleteSection, clearInserted, markInserted, moveItem } =
     useQueueStore();
+  const setSectionLayout = useQueueStore((s) => s.setSectionLayout);
   const saveAsTemplate = useQueueStore((s) => s.saveAsTemplate);
   const loadTemplate = useQueueStore((s) => s.loadTemplate);
   const [templates, setTemplates] = React.useState<QueueTemplate[]>([]);
@@ -390,6 +399,16 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className={styles.root}>
+        <div className={styles.generateRow}>
+          <Tooltip
+            content="Replace each {{Section Name}} marker in your document with that section's snippets"
+            relationship="description"
+          >
+            <Button appearance="primary" size="small" onClick={props.onGenerateReport}>
+              Generate report
+            </Button>
+          </Tooltip>
+        </div>
         {sections.map((section) => {
           const isCollapsed = collapsed.has(section.id);
           const unInserted = section.items.filter((i) => !i.inserted);
@@ -426,6 +445,7 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
               onClearInserted={() => clearInserted(section.id)}
               onRename={() => setDialog({ kind: "rename", sectionId: section.id })}
               onDelete={() => setDialog({ kind: "delete", sectionId: section.id })}
+              onSetLayout={(layout) => setSectionLayout(section.id, layout)}
             >
               {!isCollapsed &&
                 section.items.map((item) => (
@@ -517,6 +537,7 @@ interface SectionBlockProps {
   onClearInserted: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onSetLayout: (layout: SectionLayout) => void;
   children: React.ReactNode;
 }
 
@@ -559,11 +580,25 @@ const SectionBlock: React.FC<SectionBlockProps> = (props) => {
             />
           </MenuTrigger>
           <MenuPopover>
-            <MenuList>
+            <MenuList
+              checkedValues={{ layout: [props.section.layout ?? DEFAULT_SECTION_LAYOUT] }}
+              onCheckedValueChange={(_, data) => {
+                const layout = data.checkedItems[0] as SectionLayout | undefined;
+                if (layout) {
+                  props.onSetLayout(layout);
+                }
+              }}
+            >
               <MenuItem onClick={props.onRename}>Rename…</MenuItem>
               <MenuItem disabled={!props.hasInserted} onClick={props.onClearInserted}>
                 Clear inserted
               </MenuItem>
+              <MenuItemRadio name="layout" value="table">
+                Report layout: table (name | content)
+              </MenuItemRadio>
+              <MenuItemRadio name="layout" value="paragraphs">
+                Report layout: paragraphs
+              </MenuItemRadio>
               <MenuItem onClick={props.onDelete}>Delete…</MenuItem>
             </MenuList>
           </MenuPopover>

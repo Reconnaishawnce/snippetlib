@@ -26,7 +26,12 @@ import {
   Settings20Regular,
 } from "@fluentui/react-icons";
 import type { ExportBundle, Folder, Snippet, SnippetMembership } from "../../models/entities";
-import { getSelectedText, insertText } from "../../office/documentIO";
+import {
+  findMissingMarkers,
+  getSelectedText,
+  insertText,
+  writeReportSections,
+} from "../../office/documentIO";
 import type { ParsedPlaceholder } from "../../office/placeholderEngine";
 import { useLibraryStore } from "../state/libraryStore";
 import { usePlaceholderStore } from "../state/placeholderStore";
@@ -38,6 +43,7 @@ import { useTagStore } from "../state/tagStore";
 import { buildInsertText, planInsert } from "../state/insertFlow";
 import { backupNudgeDue, exportAndDownload } from "../state/importExportActions";
 import { unInsertedCount } from "../state/queueOps";
+import { buildReportPlan, type ReportPlan } from "../state/reportPlan";
 import { deriveDefaultName } from "../state/snippetName";
 import { findStaleSnippets, type StaleResult } from "../state/staleness";
 import { fetchTeamBundle, isBundleNew } from "../state/teamLibrary";
@@ -50,6 +56,7 @@ import { ImportDialog } from "./ImportDialog";
 import { PlaceholderDialog } from "./PlaceholderDialog";
 import { PlaceholdersTab } from "./PlaceholdersTab";
 import { HelpTab } from "./HelpTab";
+import { ConfirmDialog } from "./dialogs";
 import { MoveToDialog } from "./MoveToDialog";
 import { QueueTab } from "./QueueTab";
 import { SettingsTab } from "./SettingsTab";
@@ -142,6 +149,15 @@ const App: React.FC = () => {
   const [backupDue, setBackupDue] = React.useState(false);
   const [staleResults, setStaleResults] = React.useState<StaleResult[]>([]);
   const [staleReviewOpen, setStaleReviewOpen] = React.useState(false);
+  /** Report generation: placeholders still needed before we can build the final plan. */
+  const [pendingGenerate, setPendingGenerate] = React.useState<{
+    missing: ParsedPlaceholder[];
+  } | null>(null);
+  /** Report generation: plan built, but some sections have no {{marker}} in the doc. */
+  const [generateConfirm, setGenerateConfirm] = React.useState<{
+    plan: ReportPlan;
+    missingMarkers: string[];
+  } | null>(null);
   /** A fetched team bundle that is newer than the last pull — drives the banner. */
   const [teamBundle, setTeamBundle] = React.useState<ExportBundle | null>(null);
   const [teamImportOpen, setTeamImportOpen] = React.useState(false);
@@ -297,6 +313,93 @@ const App: React.FC = () => {
       }
     }
     void doInsert(pending.snippets, { ...store.values, ...filled }, pending.onDone);
+  };
+
+  /** Writes the plan's sections (minus any the user chose to skip) and books progress. */
+  const runGenerate = async (plan: ReportPlan, skipMarkers: string[]) => {
+    const skip = new Set(skipMarkers);
+    const writes = plan.sections.filter((s) => !skip.has(s.marker));
+    if (writes.length === 0) {
+      setNotice("Nothing generated — no section had a matching {{marker}}.");
+      return;
+    }
+    try {
+      await writeReportSections(
+        writes.map((s) => ({ marker: s.marker, layout: s.layout, rows: s.rows }))
+      );
+    } catch (e: unknown) {
+      setError(`Generate failed: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+    const writtenItemIds = writes.flatMap((s) => s.rows.map((r) => r.itemId));
+    useQueueStore.getState().markInserted(writtenItemIds);
+    if (usePrefsStore.getState().prefs?.enableFrecency ?? true) {
+      const writtenSnippetIds = [...new Set(writes.flatMap((s) => s.rows.map((r) => r.snippetId)))];
+      void useSnippetStore
+        .getState()
+        .recordUsage(writtenSnippetIds)
+        .catch(() => undefined);
+    }
+    const deleted = writes.reduce((n, s) => n + s.missingSnippets, 0);
+    setNotice(
+      `Report generated: ${writes.length} ${writes.length === 1 ? "section" : "sections"} filled` +
+        (skip.size > 0 ? `, ${skip.size} skipped (no marker)` : "") +
+        (deleted > 0
+          ? `, ${deleted} deleted ${deleted === 1 ? "snippet" : "snippets"} omitted`
+          : "") +
+        "."
+    );
+  };
+
+  /** After placeholder values are complete: check markers, confirm skips, write. */
+  const continueGenerate = async (values: Record<string, string>) => {
+    const snippets = await getStorage().getAllSnippets();
+    const plan = buildReportPlan(
+      useQueueStore.getState().queue,
+      new Map(snippets.map((s) => [s.id, s])),
+      values
+    );
+    if (plan.sections.length === 0) {
+      setError("The queue has no snippets to generate from. Add snippets to queue sections first.");
+      return;
+    }
+    let missingMarkers: string[];
+    try {
+      missingMarkers = await findMissingMarkers(plan.sections.map((s) => s.marker));
+    } catch (e: unknown) {
+      setError(`Couldn't scan the document: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+    if (missingMarkers.length > 0) {
+      setGenerateConfirm({ plan, missingMarkers });
+    } else {
+      await runGenerate(plan, []);
+    }
+  };
+
+  const onGenerateReport = () => {
+    setError(null);
+    void (async () => {
+      const values = usePlaceholderStore.getState().values;
+      const snippets = await getStorage().getAllSnippets();
+      const plan = buildReportPlan(
+        useQueueStore.getState().queue,
+        new Map(snippets.map((s) => [s.id, s])),
+        values
+      );
+      if (plan.sections.length === 0) {
+        setError(
+          "The queue has no snippets to generate from. Add snippets to queue sections first."
+        );
+        return;
+      }
+      if (plan.missing.length > 0) {
+        // One dialog for every unfilled placeholder across the whole report.
+        setPendingGenerate({ missing: plan.missing });
+      } else {
+        await continueGenerate(values);
+      }
+    })();
   };
 
   const onGoToSnippet = (snippet: Snippet) => {
@@ -666,6 +769,7 @@ const App: React.FC = () => {
               <QueueTab
                 onInsert={onInsert}
                 onGoToSnippet={onGoToSnippet}
+                onGenerateReport={onGenerateReport}
                 dragToDocEnabled={dragToDocEnabled}
               />
             ) : tab === "placeholders" ? (
@@ -694,6 +798,44 @@ const App: React.FC = () => {
         missing={pendingInsert?.missing ?? []}
         onSubmit={onPlaceholderSubmit}
         onCancel={() => setPendingInsert(null)}
+      />
+
+      <PlaceholderDialog
+        open={pendingGenerate !== null}
+        missing={pendingGenerate?.missing ?? []}
+        onSubmit={(filled) => {
+          setPendingGenerate(null);
+          const store = usePlaceholderStore.getState();
+          for (const [key, value] of Object.entries(filled)) {
+            if (value !== undefined && value !== "") {
+              // Same per-document memory as insert-time fills (§7.6).
+              const display = pendingGenerate?.missing.find((m) => m.key === key)?.display ?? key;
+              store.setValue(display, value);
+            }
+          }
+          void continueGenerate({ ...store.values, ...filled });
+        }}
+        onCancel={() => setPendingGenerate(null)}
+      />
+
+      <ConfirmDialog
+        open={generateConfirm !== null}
+        title="Some sections have no marker in this document"
+        message={
+          generateConfirm
+            ? `No matching marker was found for: ${generateConfirm.missingMarkers.join(", ")}. ` +
+              "Add these markers to your document and generate again — or generate now and skip those sections."
+            : ""
+        }
+        confirmLabel="Generate anyway"
+        onConfirm={() => {
+          const pending = generateConfirm;
+          setGenerateConfirm(null);
+          if (pending) {
+            void runGenerate(pending.plan, pending.missingMarkers);
+          }
+        }}
+        onCancel={() => setGenerateConfirm(null)}
       />
 
       {form && (
