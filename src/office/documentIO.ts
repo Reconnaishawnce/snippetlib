@@ -106,7 +106,8 @@ export async function openReportBuilder(
   await new Promise<void>((resolve, reject) => {
     Office.context.ui.displayDialogAsync(
       url.toString(),
-      { height: 85, width: 85, displayInIframe: false },
+      // Reasonable window: tall for the lists, not monitor-spanning wide.
+      { height: 80, width: 65, displayInIframe: false },
       (result) => {
         if (result.status !== Office.AsyncResultStatus.Succeeded) {
           reject(new Error(result.error?.message ?? "Couldn't open the builder window."));

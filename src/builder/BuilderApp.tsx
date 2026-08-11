@@ -62,27 +62,38 @@ const useStyles = makeStyles({
     gridTemplateRows: "1fr auto",
     height: "100%",
     boxSizing: "border-box",
+    // Long snippet content must never widen the window.
+    overflowX: "hidden",
   },
   columns: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    // minmax(0, …) so content can't force a column (and the window) wider.
+    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
     gap: tokens.spacingHorizontalM,
     padding: tokens.spacingHorizontalM,
     minHeight: 0,
+    maxWidth: "1100px",
+    width: "100%",
+    boxSizing: "border-box",
+    marginLeft: "auto",
+    marginRight: "auto",
   },
   column: {
     display: "flex",
     flexDirection: "column",
     gap: tokens.spacingVerticalS,
     minHeight: 0,
+    minWidth: 0,
   },
   columnScroll: {
     overflowY: "auto",
+    overflowX: "hidden",
     flexGrow: 1,
     display: "flex",
     flexDirection: "column",
     gap: tokens.spacingVerticalS,
     paddingRight: tokens.spacingHorizontalXS,
+    minWidth: 0,
   },
   columnTitle: {
     fontWeight: tokens.fontWeightSemibold,
@@ -127,6 +138,8 @@ const useStyles = makeStyles({
     paddingLeft: tokens.spacingHorizontalM,
     paddingRight: tokens.spacingHorizontalM,
     cursor: "grab",
+    minWidth: 0,
+    overflow: "hidden",
   },
   snippetHead: {
     display: "flex",
@@ -141,9 +154,13 @@ const useStyles = makeStyles({
     whiteSpace: "nowrap",
   },
   snippetPreview: {
+    // Wrap up to two lines, then clamp — long unbroken strings break anywhere.
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
     overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    overflowWrap: "anywhere",
+    whiteSpace: "pre-wrap",
     color: tokens.colorNeutralForeground2,
   },
   folderRow: {
