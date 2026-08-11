@@ -4,6 +4,13 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Run 4a — report generation from {{markers}} (2026-08-11)
+
+- **Generate report** (Queue tab): your report template carries `{{Section Name}}` markers; Generate replaces each marker with that queue section's snippets. Placeholders across the whole report are collected in **one** dialog up front; values are remembered per document as usual.
+- **Per-section layout**: each section renders as a 2-column **table** (snippet name | content — the default) or as **paragraphs**, chosen in the section's ⋯ menu; saved queue templates remember the choice, so the template drives the format.
+- **Missing markers**: before writing anything, sections whose marker isn't in the document are listed in a dialog — cancel to fix the document, or generate anyway and skip them (skipped items stay un-inserted).
+- Generated items get the normal struck-through inserted treatment; deleted snippets are omitted and counted in the result notice; usage stats record per snippet (when usage sorting is on).
+
 ### Run 3 — team library via shared URL (2026-08-02)
 
 - **Team library** (opt-in, Settings → Features → "Team library"): a curator publishes the ordinary export .json at any HTTPS link (GitHub raw/Pages, SharePoint, intranet); teammates paste the link once. The pane checks quietly on open and shows a "Your team library has updates" banner when the file's export date is newer than the last pull; "Review & pull" runs the normal import preview (Keep Both default) so local snippets are never changed blindly. Manual "Check for updates" and last-checked/last-pulled stamps live in the new Settings section. Everything is hidden until the switch is on; fetch failures give readable messages (CORS/404/invalid file) and the automatic check never nags.

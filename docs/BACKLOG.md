@@ -35,3 +35,5 @@ A curator publishes the export JSON to any HTTPS URL (SharePoint, GitHub, intran
 **Requested:** 2026-08-02 (project owner — accepted as backlog)
 
 The Queue grows into a report outline: sections with headings, snippets slotted underneath, placeholders filled once up front, then "Generate" writes the whole skeleton document in order. The plan's stated end goal (TECH_PLAN §1); queue sections, doc-scoped state, and the placeholder engine were designed to grow into it.
+
+**v1 shipped 2026-08-11 (run 4a)** as marker-based generation (`{{Section}}` replacement, per-section table/paragraph layout, fix-or-skip for missing markers). Owner-directed design: the document template owns headings; generation fills content. **Remaining (run 4b):** the drag-and-drop builder in a separate Office dialog window — outline left (loadable from saved templates), folder tree + search right. **Future:** snippet names as real Word sub-headings.

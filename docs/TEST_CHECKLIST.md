@@ -46,6 +46,16 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Run 4a — report generation from {{markers}}
+
+- [ ] Make a doc with `{{Queue}}` (or your section names) in the body; queue 2+ snippets; Generate report → the marker is replaced by a 2-column table (name | content) in marker position
+- [ ] Placeholders anywhere in the report prompt ONCE before generation; values fill into every snippet
+- [ ] A section whose marker is missing triggers the fix-or-skip dialog; Cancel leaves the document untouched
+- [ ] "Generate anyway" fills the found sections and reports "N filled, M skipped"; skipped items stay un-inserted
+- [ ] Section ⋯ → Report layout: paragraphs → regenerate into a fresh marker → plain text, blank line between snippets
+- [ ] Save queue as template, load in a new doc → layout choices carried over
+- [ ] Generated items strike through; queue badge drops accordingly
+
 ## Run 3 — team library via shared URL
 
 - [ ] Settings → Features: "Team library" switch is OFF by default and no team UI exists anywhere
