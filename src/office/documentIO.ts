@@ -30,6 +30,65 @@ export async function insertText(text: string): Promise<void> {
   });
 }
 
+/** One {{marker}} replacement for report generation (see reportPlan.ts). */
+export interface ReportSectionWrite {
+  /** Literal marker text to find, e.g. "{{HIGH Vulnerabilities}}". */
+  marker: string;
+  layout: "table" | "paragraphs";
+  rows: Array<{ name: string; text: string }>;
+}
+
+/**
+ * Which of the given markers do NOT appear in the document body. Read-only —
+ * called before generation so the user can fix the document or skip sections.
+ */
+export async function findMissingMarkers(markers: string[]): Promise<string[]> {
+  return Word.run(async (context) => {
+    const searches = markers.map((marker) => {
+      const results = context.document.body.search(marker, { matchCase: false });
+      results.load("items");
+      return results;
+    });
+    await context.sync();
+    return markers.filter((_, i) => (searches[i]?.items.length ?? 0) === 0);
+  });
+}
+
+/**
+ * Replaces each section's {{marker}} with its content: a 2-column table
+ * (snippet name | content) or plain paragraphs (blank line between snippets).
+ * Only the first occurrence of a marker is filled; missing markers are
+ * silently skipped (the caller pre-checks with findMissingMarkers).
+ */
+export async function writeReportSections(sections: ReportSectionWrite[]): Promise<void> {
+  await Word.run(async (context) => {
+    // One sync to find every marker, one sync to write — no per-section syncs.
+    const searches = sections.map((section) => {
+      const results = context.document.body.search(section.marker, { matchCase: false });
+      results.load("items");
+      return results;
+    });
+    await context.sync();
+    sections.forEach((section, i) => {
+      const range = searches[i]?.items[0];
+      if (!range) {
+        return;
+      }
+      if (section.layout === "table") {
+        const values = section.rows.map((row) => [row.name, row.text]);
+        range.insertTable(values.length, 2, Word.InsertLocation.before, values);
+        range.insertText("", Word.InsertLocation.replace);
+      } else {
+        range.insertText(
+          section.rows.map((row) => row.text).join("\n\n"),
+          Word.InsertLocation.replace
+        );
+      }
+    });
+    await context.sync();
+  });
+}
+
 /**
  * Reads a JSON value from this document's settings, zod-validated (doc
  * settings are a trust boundary — the file may come from anywhere).

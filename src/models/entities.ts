@@ -74,11 +74,16 @@ export interface QueueState {
   sections: QueueSection[];
 }
 
+/** How a section renders when a report is generated (§ report builder). */
+export type SectionLayout = "table" | "paragraphs";
+
 export interface QueueSection {
   id: string;
   name: string; // e.g., "High", "Medium", "Low" — user-defined
   sortOrder: number;
   items: QueueItem[];
+  /** Report layout: 2-column table (name | content, the default) or plain paragraphs. */
+  layout?: SectionLayout;
 }
 
 export interface QueueItem {
@@ -141,6 +146,7 @@ export interface QueueTemplate {
 export interface QueueTemplateSection {
   name: string;
   snippetIds: string[];
+  layout?: SectionLayout;
 }
 
 /** ---- Import/export bundle (§7.8) — the sharing currency and backup format ---- */

@@ -7,6 +7,7 @@ import type {
   QueueSection,
   QueueState,
   QueueTemplateSection,
+  SectionLayout,
 } from "../../models/entities";
 import { newId } from "../../models/ids";
 
@@ -185,6 +186,7 @@ export function toTemplateSections(state: QueueState): QueueTemplateSection[] {
     snippetIds: [...section.items]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((item) => item.snippetId),
+    ...(section.layout !== undefined ? { layout: section.layout } : {}),
   }));
 }
 
@@ -197,6 +199,7 @@ export function appendTemplate(state: QueueState, sections: QueueTemplateSection
   const added = sections.map((section, i) => ({
     id: newId(),
     name: section.name,
+    ...(section.layout !== undefined ? { layout: section.layout } : {}),
     sortOrder: base + i,
     items: section.snippetIds.map((snippetId, j) => ({
       id: newId(),
@@ -206,4 +209,15 @@ export function appendTemplate(state: QueueState, sections: QueueTemplateSection
     })),
   }));
   return { sections: [...state.sections, ...added] };
+}
+
+/** Sets a section's report layout (table | paragraphs). */
+export function setSectionLayout(
+  state: QueueState,
+  sectionId: string,
+  layout: SectionLayout
+): QueueState {
+  return {
+    sections: state.sections.map((s) => (s.id === sectionId ? { ...s, layout } : s)),
+  };
 }

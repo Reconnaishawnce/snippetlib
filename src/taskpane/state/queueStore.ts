@@ -4,7 +4,7 @@
  */
 import { create } from "zustand";
 import { z } from "zod";
-import type { QueueState as QueueData, QueueTemplate } from "../../models/entities";
+import type { QueueState as QueueData, QueueTemplate, SectionLayout } from "../../models/entities";
 import { queueStateSchema } from "../../models/schemas";
 import { readDocSettings, writeDocSettings } from "../../office/documentIO";
 import { getStorage } from "./storage";
@@ -27,6 +27,7 @@ export interface QueueStoreState {
   markInserted(itemIds: string[]): void;
   clearInserted(sectionId: string): void;
   moveItem(itemId: string, targetSectionId: string, targetIndex: number): void;
+  setSectionLayout(sectionId: string, layout: SectionLayout): void;
   /** Save the current queue layout as a named, reusable template. */
   saveAsTemplate(name: string): Promise<QueueTemplate>;
   /** Append a template's sections (fresh ids, nothing marked inserted). */
@@ -87,6 +88,10 @@ export const useQueueStore = create<QueueStoreState>((set, get) => {
 
     moveItem(itemId, targetSectionId, targetIndex) {
       persist(ops.moveItem(get().queue, itemId, targetSectionId, targetIndex));
+    },
+
+    setSectionLayout(sectionId, layout) {
+      persist(ops.setSectionLayout(get().queue, sectionId, layout));
     },
 
     async saveAsTemplate(name) {

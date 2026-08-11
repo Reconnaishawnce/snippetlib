@@ -84,9 +84,12 @@ export const appPrefsSchema = z.object({
   teamLibraryLastPulledAt: isoDateString.nullable(),
 });
 
+const sectionLayoutSchema = z.enum(["table", "paragraphs"]);
+
 export const queueTemplateSectionSchema = z.object({
   name: z.string(),
   snippetIds: z.array(id),
+  layout: sectionLayoutSchema.optional(),
 });
 
 export const queueTemplateSchema = z.object({
@@ -113,6 +116,7 @@ export const queueSectionSchema = z.object({
   name: z.string(),
   sortOrder: z.number(),
   items: z.array(queueItemSchema),
+  layout: sectionLayoutSchema.optional(),
 });
 
 export const queueStateSchema = z.object({
