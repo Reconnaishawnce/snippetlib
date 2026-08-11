@@ -131,6 +131,25 @@ export interface AppPrefs {
 }
 
 /**
+ * The report-builder dialog's handoff shape (dialog → pane). Existing queue
+ * item/section ids are passed through so inserted flags survive a round-trip;
+ * missing ids mean "new — mint one".
+ */
+export interface BuilderItem {
+  id?: string;
+  snippetId: string;
+}
+
+export interface BuilderSection {
+  id?: string;
+  name: string;
+  layout?: SectionLayout;
+  items: BuilderItem[];
+}
+
+export type BuilderResult = { cancel: true } | { cancel?: false; sections: BuilderSection[] };
+
+/**
  * A saved queue layout ("report-type checklist"): named sections with the
  * snippets that belong in them. App-scoped (IndexedDB), loadable into any
  * document's queue. Not part of the export bundle (v0.x).

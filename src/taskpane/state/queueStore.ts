@@ -4,7 +4,12 @@
  */
 import { create } from "zustand";
 import { z } from "zod";
-import type { QueueState as QueueData, QueueTemplate, SectionLayout } from "../../models/entities";
+import type {
+  BuilderSection,
+  QueueState as QueueData,
+  QueueTemplate,
+  SectionLayout,
+} from "../../models/entities";
 import { queueStateSchema } from "../../models/schemas";
 import { readDocSettings, writeDocSettings } from "../../office/documentIO";
 import { getStorage } from "./storage";
@@ -28,6 +33,8 @@ export interface QueueStoreState {
   clearInserted(sectionId: string): void;
   moveItem(itemId: string, targetSectionId: string, targetIndex: number): void;
   setSectionLayout(sectionId: string, layout: SectionLayout): void;
+  /** Replaces the queue with the builder dialog's outline (inserted flags survive by id). */
+  applyBuilderResult(sections: BuilderSection[]): void;
   /** Save the current queue layout as a named, reusable template. */
   saveAsTemplate(name: string): Promise<QueueTemplate>;
   /** Append a template's sections (fresh ids, nothing marked inserted). */
@@ -92,6 +99,10 @@ export const useQueueStore = create<QueueStoreState>((set, get) => {
 
     setSectionLayout(sectionId, layout) {
       persist(ops.setSectionLayout(get().queue, sectionId, layout));
+    },
+
+    applyBuilderResult(sections) {
+      persist(ops.replaceFromBuilder(get().queue, sections));
     },
 
     async saveAsTemplate(name) {

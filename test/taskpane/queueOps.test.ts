@@ -4,6 +4,7 @@ import {
   addSection,
   addToQueue,
   appendTemplate,
+  replaceFromBuilder,
   toTemplateSections,
   clearInserted,
   deleteSection,
@@ -163,5 +164,43 @@ describe("queue templates ops", () => {
     const again = appendTemplate(next, [{ name: "Intro", snippetIds: ["s1"] }]);
     const ids = again.sections.flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("replaceFromBuilder", () => {
+  it("replaces the queue, preserving inserted flags by surviving item id", () => {
+    let state = emptyQueue();
+    state = addSection(state, "High");
+    const sectionId = state.sections[0]!.id;
+    state = addToQueue(state, "s1", sectionId).state;
+    state = addToQueue(state, "s2", sectionId).state;
+    const [i1, i2] = state.sections[0]!.items;
+    state = {
+      sections: state.sections.map((s) => ({
+        ...s,
+        items: s.items.map((i) => (i.id === i1!.id ? { ...i, inserted: true } : i)),
+      })),
+    };
+
+    const next = replaceFromBuilder(state, [
+      {
+        id: sectionId,
+        name: "High (renamed)",
+        layout: "paragraphs",
+        // i1 survives (keeps inserted), i2 dropped, s3 is new
+        items: [{ id: i1!.id, snippetId: "s1" }, { snippetId: "s3" }],
+      },
+      { name: "Brand new", items: [{ snippetId: "s4" }] },
+    ]);
+
+    expect(next.sections.map((s) => s.name)).toEqual(["High (renamed)", "Brand new"]);
+    expect(next.sections[0]!.layout).toBe("paragraphs");
+    const [k1, k3] = next.sections[0]!.items;
+    expect(k1!.id).toBe(i1!.id);
+    expect(k1!.inserted).toBe(true);
+    expect(k3!.inserted).toBe(false);
+    expect(k3!.id).not.toBe(i2!.id);
+    expect(next.sections[1]!.items[0]!.snippetId).toBe("s4");
+    expect(next.sections.map((s) => s.sortOrder)).toEqual([0, 1]);
   });
 });

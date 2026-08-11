@@ -2,7 +2,7 @@
  * The Office boundary (TECH_PLAN.md §6): the ONLY file allowed to call
  * Word.run / Office.context. Everything above it is unit-testable with a mock.
  */
-/* global Word, Office, setTimeout, clearTimeout */
+/* global Word, Office, setTimeout, clearTimeout, window */
 import type { z } from "zod";
 
 /** Returns the text of the current selection ("" when the cursor is collapsed). */
@@ -87,6 +87,51 @@ export async function writeReportSections(sections: ReportSectionWrite[]): Promi
     });
     await context.sync();
   });
+}
+
+/**
+ * Opens the report-builder page in a separate Office dialog window. The
+ * current queue rides in via the URL hash; the edited outline comes back
+ * through dialog messaging (zod-validated by the caller — trust boundary).
+ * Resolves when the dialog closes; onMessage fires for each message.
+ */
+export async function openReportBuilder(
+  initialState: unknown,
+  onMessage: (message: string) => void
+): Promise<void> {
+  const url = new window.URL(window.location.href);
+  url.pathname = url.pathname.replace(/taskpane\.html$/, "builder.html");
+  url.search = "";
+  url.hash = `state=${encodeURIComponent(JSON.stringify(initialState))}`;
+  await new Promise<void>((resolve, reject) => {
+    Office.context.ui.displayDialogAsync(
+      url.toString(),
+      { height: 85, width: 85, displayInIframe: false },
+      (result) => {
+        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          reject(new Error(result.error?.message ?? "Couldn't open the builder window."));
+          return;
+        }
+        const dialog = result.value;
+        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
+          if ("message" in arg) {
+            onMessage(arg.message);
+          }
+          dialog.close();
+          resolve();
+        });
+        dialog.addEventHandler(Office.EventType.DialogEventReceived, () => {
+          // 12006 = user closed the window — treat as cancel.
+          resolve();
+        });
+      }
+    );
+  });
+}
+
+/** Builder page → pane. The ONLY Office call the builder page makes. */
+export function sendBuilderMessage(message: string): void {
+  Office.context.ui.messageParent(message);
 }
 
 /**

@@ -3,6 +3,7 @@
  * storage, Office, or React dependencies — fully unit-tested.
  */
 import type {
+  BuilderSection,
   QueueItem,
   QueueSection,
   QueueState,
@@ -219,5 +220,29 @@ export function setSectionLayout(
 ): QueueState {
   return {
     sections: state.sections.map((s) => (s.id === sectionId ? { ...s, layout } : s)),
+  };
+}
+
+/**
+ * Replaces the whole queue with the builder dialog's outline. Items that keep
+ * their id keep their inserted flag; everything else starts fresh.
+ */
+export function replaceFromBuilder(state: QueueState, sections: BuilderSection[]): QueueState {
+  const insertedById = new Map(
+    state.sections.flatMap((s) => s.items.map((i) => [i.id, i.inserted] as const))
+  );
+  return {
+    sections: sections.map((section, si) => ({
+      id: section.id ?? newId(),
+      name: section.name,
+      sortOrder: si,
+      ...(section.layout !== undefined ? { layout: section.layout } : {}),
+      items: section.items.map((item, ii) => ({
+        id: item.id ?? newId(),
+        snippetId: item.snippetId,
+        sortOrder: ii,
+        inserted: (item.id !== undefined && insertedById.get(item.id)) || false,
+      })),
+    })),
   };
 }

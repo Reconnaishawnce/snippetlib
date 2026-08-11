@@ -123,6 +123,22 @@ export const queueStateSchema = z.object({
   sections: z.array(queueSectionSchema),
 });
 
+/** Builder dialog result — a trust boundary (arrives via Office dialog messaging). */
+export const builderResultSchema = z.union([
+  z.object({ cancel: z.literal(true) }),
+  z.object({
+    cancel: z.literal(false).optional(),
+    sections: z.array(
+      z.object({
+        id: id.optional(),
+        name: z.string().min(1),
+        layout: sectionLayoutSchema.optional(),
+        items: z.array(z.object({ id: id.optional(), snippetId: id })),
+      })
+    ),
+  }),
+]);
+
 /** ---- Import/export bundle ---- */
 
 export const exportBundleSchema = z.object({
