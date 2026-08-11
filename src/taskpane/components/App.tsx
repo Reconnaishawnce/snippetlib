@@ -30,6 +30,7 @@ import {
   findMissingMarkers,
   getSelectedText,
   insertText,
+  openReportBuilder,
   writeReportSections,
 } from "../../office/documentIO";
 import type { ParsedPlaceholder } from "../../office/placeholderEngine";
@@ -44,6 +45,7 @@ import { buildInsertText, planInsert } from "../state/insertFlow";
 import { backupNudgeDue, exportAndDownload } from "../state/importExportActions";
 import { unInsertedCount } from "../state/queueOps";
 import { buildReportPlan, type ReportPlan } from "../state/reportPlan";
+import { builderResultSchema } from "../../models/schemas";
 import { deriveDefaultName } from "../state/snippetName";
 import { findStaleSnippets, type StaleResult } from "../state/staleness";
 import { fetchTeamBundle, isBundleNew } from "../state/teamLibrary";
@@ -400,6 +402,28 @@ const App: React.FC = () => {
         await continueGenerate(values);
       }
     })();
+  };
+
+  /** Opens the drag-and-drop builder window; applies the outline it sends back. */
+  const onOpenBuilder = () => {
+    setError(null);
+    openReportBuilder(useQueueStore.getState().queue, (message) => {
+      // Dialog messages are a trust boundary — zod-validated before use.
+      try {
+        const parsed = builderResultSchema.safeParse(JSON.parse(message));
+        if (!parsed.success || ("cancel" in parsed.data && parsed.data.cancel === true)) {
+          return;
+        }
+        if ("sections" in parsed.data) {
+          useQueueStore.getState().applyBuilderResult(parsed.data.sections);
+          setNotice("Queue updated from the report builder.");
+        }
+      } catch {
+        // Malformed message — ignore.
+      }
+    }).catch((e: unknown) => {
+      setError(`Couldn't open the builder window: ${e instanceof Error ? e.message : String(e)}`);
+    });
   };
 
   const onGoToSnippet = (snippet: Snippet) => {
@@ -770,6 +794,7 @@ const App: React.FC = () => {
                 onInsert={onInsert}
                 onGoToSnippet={onGoToSnippet}
                 onGenerateReport={onGenerateReport}
+                onOpenBuilder={onOpenBuilder}
                 dragToDocEnabled={dragToDocEnabled}
               />
             ) : tab === "placeholders" ? (

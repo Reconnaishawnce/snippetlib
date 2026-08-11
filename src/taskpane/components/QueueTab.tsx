@@ -114,6 +114,7 @@ const useStyles = makeStyles({
   generateRow: {
     display: "flex",
     justifyContent: "flex-end",
+    gap: tokens.spacingHorizontalS,
   },
   addSectionRow: {
     display: "flex",
@@ -128,6 +129,8 @@ export interface QueueTabProps {
   dragToDocEnabled: boolean;
   /** Report builder v1: fill every {{Section}} marker in the document. */
   onGenerateReport: () => void;
+  /** Report builder v2: the drag-and-drop outline window. */
+  onOpenBuilder: () => void;
 }
 
 interface ItemRowProps extends QueueTabProps {
@@ -380,6 +383,9 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
             Add section
           </Button>
           {templates.length > 0 && templatesMenu}
+          <Button appearance="secondary" size="small" onClick={props.onOpenBuilder}>
+            Builder…
+          </Button>
         </div>
         <NameDialog
           open={dialog?.kind === "add"}
@@ -400,6 +406,14 @@ export const QueueTab: React.FC<QueueTabProps> = (props) => {
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className={styles.root}>
         <div className={styles.generateRow}>
+          <Tooltip
+            content="Build the outline in a big drag-and-drop window"
+            relationship="description"
+          >
+            <Button appearance="secondary" size="small" onClick={props.onOpenBuilder}>
+              Builder…
+            </Button>
+          </Tooltip>
           <Tooltip
             content="Replace each {{Section Name}} marker in your document with that section's snippets"
             relationship="description"
