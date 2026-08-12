@@ -42,6 +42,12 @@ export interface Snippet {
   id: string;
   name: string;
   content: string; // plain text; may contain [Placeholder Name] tokens
+  /**
+   * Optional Word OOXML captured at save time (rich-text feature, opt-in).
+   * NEVER rendered in the pane — only handed back to Word on insert. Plain
+   * `content` stays the source of truth for search/preview/similarity/history.
+   */
+  contentOoxml?: string;
   tagIds: string[];
   memberships: SnippetMembership[]; // empty array = Unassigned Backlog
   history: SnippetRevision[]; // most recent first, max length 3
@@ -114,6 +120,8 @@ export interface AppPrefs {
   enableQueue: boolean;
   /** Usage tracking + the Recently/Most used sorts. Off: no recording, name sort only. */
   enableFrecency: boolean;
+  /** Rich text (experimental, opt-in): capture/insert Word formatting via OOXML. */
+  enableRichText: boolean;
   // Stale-snippet review (opt-in): flag snippets not edited in `staleEditedDays`
   // OR not used in `staleUnusedDays`.
   staleReviewEnabled: boolean;

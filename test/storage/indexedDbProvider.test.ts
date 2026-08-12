@@ -264,6 +264,7 @@ describe("prefs", () => {
       browseSort: "name",
       enableQueue: true,
       enableFrecency: true,
+      enableRichText: false,
       staleReviewEnabled: false,
       staleEditedDays: 180,
       staleUnusedDays: 90,

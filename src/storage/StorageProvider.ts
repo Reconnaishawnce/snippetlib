@@ -32,6 +32,8 @@ export interface FolderInput {
 export interface SnippetInput {
   name: string;
   content: string;
+  /** Optional Word OOXML (rich-text feature); stored verbatim, never indexed. */
+  contentOoxml?: string;
   tagIds: string[];
   memberships: SnippetMembership[];
 }

@@ -40,6 +40,7 @@ const DEFAULT_PREFS: AppPrefs = {
   browseSort: "name",
   enableQueue: true,
   enableFrecency: true,
+  enableRichText: false, // experimental — opt-in (ADR-006)
   staleReviewEnabled: false, // opt-in — no surprise alerts
   staleEditedDays: 180,
   staleUnusedDays: 90,
@@ -111,6 +112,7 @@ function toSnippet(row: SnippetRow): Snippet {
     ...(row.useCount !== undefined ? { useCount: row.useCount } : {}),
     ...(row.lastUsedAt !== undefined ? { lastUsedAt: row.lastUsedAt } : {}),
     ...(row.lastReviewedAt !== undefined ? { lastReviewedAt: row.lastReviewedAt } : {}),
+    ...(row.contentOoxml !== undefined ? { contentOoxml: row.contentOoxml } : {}),
   };
 }
 
@@ -280,6 +282,7 @@ export class IndexedDbProvider implements StorageProvider {
       id: newId(),
       name: input.name,
       content: input.content,
+      ...(input.contentOoxml !== undefined ? { contentOoxml: input.contentOoxml } : {}),
       tagIds: [...input.tagIds],
       memberships: input.memberships.map((m) => ({ ...m })),
       history: [],
@@ -501,6 +504,7 @@ export class IndexedDbProvider implements StorageProvider {
       browseSort: row.browseSort ?? "name",
       enableQueue: row.enableQueue ?? true,
       enableFrecency: row.enableFrecency ?? true,
+      enableRichText: row.enableRichText ?? false,
       staleReviewEnabled: row.staleReviewEnabled ?? false,
       staleEditedDays: row.staleEditedDays ?? 180,
       staleUnusedDays: row.staleUnusedDays ?? 90,
