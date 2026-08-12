@@ -52,8 +52,8 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     # Releases only (ADR-007): users load the production URL live, so deploys
-    # happen on version tags — never on every push to main.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # happen on version tags or a manual dispatch — never on every push to main.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: check
     runs-on: ubuntu-latest
     permissions:
