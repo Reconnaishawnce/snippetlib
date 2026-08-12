@@ -39,6 +39,10 @@ jobs:
       - name: Validate manifest
         run: npm run validate-manifest
 
+      - name: E2E smoke tests
+        # Stubbed office.js in headless Chromium (preinstalled on the runner).
+        run: npm run test:e2e
+
       - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
         with:

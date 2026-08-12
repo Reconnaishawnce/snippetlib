@@ -24,10 +24,11 @@
     "lint": "office-addin-lint check",
     "lint:fix": "office-addin-lint fix",
     "format": "office-addin-lint prettier",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,html}\" \"test/**/*.ts\" \"docs/**/*.md\" \"*.{js,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,html}\" \"test/**/*.{ts,mjs}\" \"docs/**/*.md\" \"*.{js,json,md}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "validate-manifest": "office-addin-manifest validate manifest.xml",
-    "watch": "webpack --mode development --watch"
+    "watch": "webpack --mode development --watch",
+    "test:e2e": "node test/e2e/run.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -70,6 +71,7 @@
     "office-addin-manifest": "^2.1.6",
     "office-addin-prettier-config": "^2.0.5",
     "os-browserify": "^0.3.0",
+    "playwright-core": "^1.62.1",
     "prettier": "^3.4.2",
     "process": "^0.11.10",
     "source-map-loader": "^5.0.0",
