@@ -4,6 +4,13 @@ All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Run 5 — rich text snippets, experimental (2026-08-11)
+
+- **Rich text snippets** (opt-in, Settings → Features → "Rich text snippets"): with the switch on, saving a selection also captures its Word formatting (OOXML) — bold, lists, tables — and inserting restores it. Plain text remains the source of truth everywhere in the pane: search, previews, history, and similarity all keep working, and formatting is never rendered in the pane itself.
+- Known limits (by design, v1): snippets containing `[placeholders]` always insert as resolved plain text (tokens can split across formatting runs); generated report **tables** stay plain text; editing a snippet's text (or restoring an old revision) drops its stored formatting rather than pairing stale formatting with new text.
+- Exports carry the formatting; older app versions simply ignore it on import.
+- Inserts are now built as mixed parts (plain/rich per snippet) with paragraph breaks between snippets and the same cursor-to-end + trailing-space chaining.
+
 ### Run 4b — the drag-and-drop report builder window (2026-08-11)
 
 - **Builder…** (Queue tab) opens a separate, full-size window: your **report outline on the left** (sections with inline rename, Table/Paragraphs layout, reorder, remove) and the **snippet library on the right** (library picker, folder tree, search). Drag snippets onto a section — or click **+** — to slot them in.

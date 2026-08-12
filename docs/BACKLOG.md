@@ -22,6 +22,8 @@ The blank-pane-on-first-open in dev is mitigated by the watchdog in `taskpane.ht
 
 Snippets are plain text by design (CLAUDE.md rule 5). Real reports use bold headings, bullets, and tables. Feasible via Word's OOXML round-trip (`Range.getOoxml()` / `insertOoxml`), but it rewrites the security model (no more text-nodes-only rendering), preview, search extraction, and the export format. v1.0-scale project; decide deliberately.
 
+**Shipped 2026-08-11 (run 5)** as an experimental opt-in that keeps the security model intact: OOXML is stored alongside plain text and only ever sent to Word — never rendered in the pane; text stays the source of truth for search/preview/history. v1 limits: placeholder snippets and report tables insert plain; text edits drop stored formatting. Word-fidelity verification (the OOXML spike) is the first item of the run-5 test checklist.
+
 ## Team library via shared bundle URL
 
 **Requested:** 2026-08-02 (project owner — accepted as backlog)

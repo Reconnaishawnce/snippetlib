@@ -46,6 +46,19 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Run 5 — rich text snippets (experimental)
+
+**This section IS the OOXML spike** — if the first two items fail or mangle formatting, flip the switch back off and report; everything else in the app is unaffected.
+
+- [ ] Settings → Features → Rich text ON. Select formatted text (bold + a bulleted list), save it, insert it elsewhere — formatting survives the round-trip
+- [ ] Same with a small table selection
+- [ ] A snippet saved with `[Site Name]` in it prompts and inserts as plain text (expected v1 limit)
+- [ ] Insert All / queue insert mixing rich and plain snippets keeps order with paragraph breaks between them
+- [ ] Edit a rich snippet's text in the form → subsequent inserts are plain (formatting intentionally dropped)
+- [ ] Toggle OFF → the same snippets insert as plain text again
+- [ ] Generate report still produces plain-text tables (expected v1 limit)
+- [ ] Export → import on another machine keeps the formatting
+
 ## Run 4b — the report builder window
 
 - [ ] Queue tab → Builder… opens a large separate window (both with an empty queue and a populated one; current sections appear on the left)
