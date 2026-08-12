@@ -46,6 +46,11 @@ Record results as `[x] pass (platform, date)` or `[!] fail → issue link`.
 - [ ] Editing a snippet's content asks Update vs Save as New; a heavy rewrite highlights Save as New
 - [ ] History shows the last 3 versions; Restore swaps a revision in and keeps the replaced version in history
 
+## Runs 6–8 — stabilization
+
+- [ ] Settings shows "ReportSnips v0.6.0" at the bottom; Copy diagnostics puts a readable report on the clipboard
+- [ ] After a fresh release deploy, the pane loads without a hard cache refresh (content-hashed bundles)
+
 ## Run 5 — rich text snippets (experimental)
 
 **This section IS the OOXML spike** — if the first two items fail or mangle formatting, flip the switch back off and report; everything else in the app is unaffected.

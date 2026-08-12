@@ -2,6 +2,7 @@
 /* global window */
 import * as React from "react";
 import { Button, MessageBar, MessageBarBody, makeStyles, tokens } from "@fluentui/react-components";
+import { logDiagnostic } from "../state/diagnostics";
 
 const useStyles = makeStyles({
   root: {
@@ -38,6 +39,10 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Erro
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { error };
+  }
+
+  override componentDidCatch(error: Error): void {
+    logDiagnostic("react-boundary", error.message);
   }
 
   override render(): React.ReactNode {

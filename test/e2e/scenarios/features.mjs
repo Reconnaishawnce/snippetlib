@@ -145,6 +145,26 @@ export async function run({ context, baseUrl, check }) {
   const body = await page.evaluate(() => document.body.innerText);
   check("bad import shows a readable error", /isn't|invalid|couldn't|JSON/i.test(body));
 
+  // Data-loss guard: wipe IndexedDB (as Office storage-clearing would) and
+  // reload — the missing-library banner must appear instead of a silent
+  // fresh pane, and Copy diagnostics must produce a report.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const req = indexedDB.deleteDatabase("reportsnips");
+        req.onsuccess = req.onerror = req.onblocked = () => resolve(null);
+      })
+  );
+  await page.reload({ waitUntil: "load" });
+  await page.waitForTimeout(1800);
+  check(
+    "storage eviction shows the missing-library banner",
+    await page.getByText(/library appears to be missing/).isVisible()
+  );
+  await page.getByRole("button", { name: "Restore from backup…" }).click();
+  await page.waitForTimeout(400);
+  check("Restore opens the import flow", (await page.locator('input[type="file"]').count()) > 0);
+
   check("no page errors", errors.length === 0);
   await page.close();
 }

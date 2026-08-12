@@ -4,8 +4,11 @@ import App from "./components/App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FluentProvider, webDarkTheme, webLightTheme } from "@fluentui/react-components";
 import { isOfficeThemeDark } from "../office/documentIO";
+import { installDiagnosticHooks } from "./state/diagnostics";
 
 /* global document, window, Office, HTMLElement */
+
+installDiagnosticHooks();
 
 function prefersDark(): boolean {
   // Word's own theme wins (§8: feel like Word's UI); OS preference is the fallback.

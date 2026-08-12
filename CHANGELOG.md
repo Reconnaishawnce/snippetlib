@@ -1,8 +1,21 @@
 # Changelog
 
-All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachangelog.com/); versions follow semver (v0.5.0 will be the MVP tag).
+All notable changes to ReportSnips. Follows [Keep a Changelog](https://keepachangelog.com/); versions follow semver.
 
 ## [Unreleased]
+
+_(nothing yet)_
+
+## [0.6.0] — 2026-08-11
+
+Everything from M0 through the stabilization runs below. First tag-driven release (ADR-007).
+
+### Runs 6–8 — stabilization (2026-08-11)
+
+- **E2E smoke suite in CI**: the headless-Chromium tests that caught every UI-level bug (39 checks across the core loop, feature toggles, team library, report generation, the builder window, and rich text) now live in `test/e2e/` and run on every push — `npm run test:e2e`.
+- **Release discipline**: production bundles are content-hashed (atomic against Office's webview caching); GitHub Pages deploys only on `v*` tags instead of every push; the app version shows at the bottom of Settings.
+- **Data-loss guard**: if the database comes up empty on a machine that previously had snippets (Office does occasionally clear webview storage), a warning banner explains what happened and offers one-click restore from your latest export — no more silent fresh pane.
+- **Copy diagnostics** (Settings): copies version, environment, library counts, and the last 50 errors (never snippet content) for support. Errors are captured from the error bar, React crashes, and unhandled exceptions into a localStorage ring buffer that survives database loss.
 
 ### Run 5 — rich text snippets, experimental (2026-08-11)
 

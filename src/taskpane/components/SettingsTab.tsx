@@ -20,6 +20,7 @@ import {
 import { usePrefsStore } from "../state/prefsStore";
 import { useLibraryStore } from "../state/libraryStore";
 import { getStorage } from "../state/storage";
+import { buildDiagnosticsReport, copyToClipboard } from "../state/diagnostics";
 
 const useStyles = makeStyles({
   root: {
@@ -65,6 +66,24 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
   const [confirmText, setConfirmText] = React.useState("");
   const [urlDraft, setUrlDraft] = React.useState<string | null>(null);
   const [checking, setChecking] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+
+  const copyDiagnostics = async () => {
+    try {
+      const storage = getStorage();
+      const [allLibraries, allSnippets] = await Promise.all([
+        storage.getAllLibraries(),
+        storage.getAllSnippets(),
+      ]);
+      const report = buildDiagnosticsReport(
+        typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
+        { libraries: allLibraries.length, snippets: allSnippets.length }
+      );
+      setCopied(await copyToClipboard(report));
+    } catch {
+      setCopied(false);
+    }
+  };
 
   const urlValue = urlDraft ?? prefs?.teamLibraryUrl ?? "";
   const urlValid = React.useMemo(() => {
@@ -287,9 +306,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
       </div>
 
       <Divider />
-      <Text size={200} className={styles.hint}>
-        ReportSnips v{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev"}
-      </Text>
+      <div className={styles.row}>
+        <Button appearance="secondary" size="small" onClick={() => void copyDiagnostics()}>
+          {copied ? "Copied to clipboard" : "Copy diagnostics"}
+        </Button>
+        <Text size={200} className={styles.hint}>
+          ReportSnips v{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev"} — the
+          report contains recent errors only, never snippet content.
+        </Text>
+      </div>
 
       <Dialog open={confirmOpen} onOpenChange={(_, data) => !data.open && setConfirmOpen(false)}>
         <DialogSurface>

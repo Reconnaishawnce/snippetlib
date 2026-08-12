@@ -50,6 +50,12 @@ import { builderResultSchema } from "../../models/schemas";
 import { deriveDefaultName } from "../state/snippetName";
 import { findStaleSnippets, type StaleResult } from "../state/staleness";
 import { fetchTeamBundle, isBundleNew } from "../state/teamLibrary";
+import {
+  libraryLooksMissing,
+  logDiagnostic,
+  updateLibraryMarker,
+  type LibraryMarker,
+} from "../state/diagnostics";
 import { getStorage } from "../state/storage";
 import { SAVE_AS_NEW_THRESHOLD, diceSimilarity } from "../../importexport/similarity";
 import { LibrarySwitcher } from "./LibrarySwitcher";
@@ -163,6 +169,8 @@ const App: React.FC = () => {
     plan: ReportPlan;
     missingMarkers: string[];
   } | null>(null);
+  /** Set when the DB is empty but this machine previously had snippets (storage evicted). */
+  const [dataLossMarker, setDataLossMarker] = React.useState<LibraryMarker | null>(null);
   /** A fetched team bundle that is newer than the last pull — drives the banner. */
   const [teamBundle, setTeamBundle] = React.useState<ExportBundle | null>(null);
   const [teamImportOpen, setTeamImportOpen] = React.useState(false);
@@ -187,6 +195,13 @@ const App: React.FC = () => {
     void usePrefsStore.getState().load();
   }, [init]);
 
+  // Every user-visible error also lands in the diagnostics ring buffer.
+  React.useEffect(() => {
+    if (error) {
+      logDiagnostic("error-bar", error);
+    }
+  }, [error]);
+
   // A disabled feature must never leave its tab selected.
   React.useEffect(() => {
     if (!enableQueue && tab === "queue") {
@@ -197,7 +212,23 @@ const App: React.FC = () => {
   const refreshBackupNudge = React.useCallback(async () => {
     try {
       const storage = getStorage();
-      const [prefs, snippets] = await Promise.all([storage.getPrefs(), storage.getAllSnippets()]);
+      const [prefs, snippets, allLibraries] = await Promise.all([
+        storage.getPrefs(),
+        storage.getAllSnippets(),
+        storage.getAllLibraries(),
+      ]);
+      // Data-loss guard: an empty DB where snippets used to live means the
+      // webview storage was cleared — warn instead of silently starting fresh.
+      const missing = libraryLooksMissing(snippets.length);
+      if (missing) {
+        setDataLossMarker(missing);
+        logDiagnostic(
+          "integrity",
+          `library empty but marker recorded ${missing.snippetCount} snippets (${missing.updatedAt})`
+        );
+      } else {
+        updateLibraryMarker(snippets.length, allLibraries.length);
+      }
       setBackupDue(
         backupNudgeDue(prefs.lastExportAt, prefs.changesSinceExport, snippets.length, new Date())
       );
@@ -681,6 +712,44 @@ const App: React.FC = () => {
                 }}
               >
                 Undo
+              </Button>
+            </MessageBarActions>
+          </MessageBar>
+        )}
+        {dataLossMarker && (
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              Your snippet library appears to be missing — this machine had{" "}
+              {dataLossMarker.snippetCount}{" "}
+              {dataLossMarker.snippetCount === 1 ? "snippet" : "snippets"} as of{" "}
+              {new Date(dataLossMarker.updatedAt).toLocaleString()}. Word may have cleared its
+              storage. Restore from your latest export file.
+            </MessageBarBody>
+            <MessageBarActions
+              containerAction={
+                <Button
+                  appearance="transparent"
+                  icon={<Dismiss16Regular />}
+                  aria-label="Dismiss missing-library warning"
+                  onClick={() => {
+                    setDataLossMarker(null);
+                    // Accept the current (empty/new) state as the new baseline.
+                    void refreshBackupNudge();
+                    updateLibraryMarker(0, 0);
+                  }}
+                />
+              }
+            >
+              <Button
+                appearance="secondary"
+                size="small"
+                onClick={() => {
+                  setDataLossMarker(null);
+                  updateLibraryMarker(0, 0);
+                  setImportOpen(true);
+                }}
+              >
+                Restore from backup…
               </Button>
             </MessageBarActions>
           </MessageBar>
