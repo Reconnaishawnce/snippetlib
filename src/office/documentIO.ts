@@ -16,18 +16,64 @@ export async function getSelectedText(): Promise<string> {
 }
 
 /**
+ * The OOXML of the current selection (rich-text feature). Undefined when the
+ * selection is collapsed or the host can't provide it — callers fall back to
+ * plain text.
+ */
+export async function getSelectedOoxml(): Promise<string | undefined> {
+  try {
+    return await Word.run(async (context) => {
+      const selection = context.document.getSelection();
+      const ooxml = selection.getOoxml();
+      await context.sync();
+      // getOoxml() returns a ClientResult, not a proxy: .value is THE documented
+      // read pattern after sync, and load() does not exist on it.
+      // eslint-disable-next-line office-addins/load-object-before-read
+      return ooxml.value || undefined;
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+/** One insertable unit: pre-resolved plain text OR raw OOXML (never both). */
+export type InsertPart = { text: string } | { ooxml: string };
+
+/**
+ * Inserts parts sequentially at the cursor (replacing any selection), a
+ * paragraph break between parts, a trailing space after the last, cursor at
+ * the end (§6 + run-1 chaining behavior). One batched sync.
+ */
+export async function insertParts(parts: InsertPart[]): Promise<void> {
+  if (parts.length === 0) {
+    return;
+  }
+  await Word.run(async (context) => {
+    let range: Word.Range = context.document.getSelection();
+    parts.forEach((part, i) => {
+      const location = i === 0 ? Word.InsertLocation.replace : Word.InsertLocation.after;
+      if ("ooxml" in part) {
+        range = range.insertOoxml(part.ooxml, location);
+      } else {
+        range = range.insertText(part.text, location);
+      }
+      if (i < parts.length - 1) {
+        range = range.insertText("\n", Word.InsertLocation.after);
+      }
+    });
+    range = range.insertText(" ", Word.InsertLocation.after);
+    range.select(Word.SelectionMode.end);
+    await context.sync();
+  });
+}
+
+/**
  * Inserts plain text at the cursor, replacing any selection (§6). A trailing
  * space is appended and the cursor lands after it, so consecutive inserts
  * chain naturally instead of stacking on top of each other.
  */
 export async function insertText(text: string): Promise<void> {
-  await Word.run(async (context) => {
-    const range = context.document
-      .getSelection()
-      .insertText(text + " ", Word.InsertLocation.replace);
-    range.select(Word.SelectionMode.end);
-    await context.sync();
-  });
+  await insertParts([{ text }]);
 }
 
 /** One {{marker}} replacement for report generation (see reportPlan.ts). */

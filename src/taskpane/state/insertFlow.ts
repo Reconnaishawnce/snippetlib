@@ -37,3 +37,39 @@ export function planInsert(snippets: Snippet[], values: Record<string, string>):
 export function buildInsertText(snippets: Snippet[], values: Record<string, string>): string {
   return snippets.map((snippet) => resolveContent(snippet.content, values).text).join("\n");
 }
+
+/** One insert unit: resolved text, or verbatim OOXML for rich snippets. */
+export type PlannedPart = { text: string } | { ooxml: string };
+
+/**
+ * The parts to insert, in order (rich-text feature). A snippet inserts as
+ * OOXML only when the feature is on, it has captured OOXML, AND it contains
+ * no placeholders — tokens can split across formatting runs inside XML, so
+ * placeholder snippets always take the resolved plain-text path. Adjacent
+ * text parts merge with a newline (matching classic multi-insert).
+ */
+export function buildInsertParts(
+  snippets: Snippet[],
+  values: Record<string, string>,
+  richEnabled: boolean
+): PlannedPart[] {
+  const parts: PlannedPart[] = [];
+  for (const snippet of snippets) {
+    const rich =
+      richEnabled &&
+      snippet.contentOoxml !== undefined &&
+      uniquePlaceholders(snippet.content).length === 0;
+    if (rich && snippet.contentOoxml) {
+      parts.push({ ooxml: snippet.contentOoxml });
+      continue;
+    }
+    const text = resolveContent(snippet.content, values).text;
+    const last = parts[parts.length - 1];
+    if (last && "text" in last) {
+      last.text += `\n${text}`;
+    } else {
+      parts.push({ text });
+    }
+  }
+  return parts;
+}

@@ -14,6 +14,8 @@ import type { LibraryScope } from "./libraryStore";
 export interface SnippetDraft {
   name: string;
   content: string;
+  /** Optional Word OOXML captured with the selection (rich-text feature). */
+  contentOoxml?: string;
   tagIds: string[];
   memberships: SnippetMembership[];
 }
@@ -91,11 +93,16 @@ export const useSnippetStore = create<SnippetState>((set, get) => ({
       content: previous.content,
       savedAt: new Date().toISOString(),
     };
-    return get().saveEdit({
+    const next: Snippet = {
       ...previous,
       ...changes,
       history: [revision, ...previous.history].slice(0, HISTORY_LIMIT),
-    });
+    };
+    if (changes.content !== previous.content && changes.contentOoxml === undefined) {
+      // The plain text changed in the form — any captured formatting is stale.
+      delete next.contentOoxml;
+    }
+    return get().saveEdit(next);
   },
 
   async saveAsNew(changes) {
@@ -113,12 +120,17 @@ export const useSnippetStore = create<SnippetState>((set, get) => ({
       savedAt: new Date().toISOString(),
     };
     const history = snippet.history.filter((_, i) => i !== revisionIndex);
-    return get().saveEdit({
+    const next: Snippet = {
       ...snippet,
       name: revision.name,
       content: revision.content,
       history: [current, ...history].slice(0, HISTORY_LIMIT),
-    });
+    };
+    if (revision.content !== snippet.content) {
+      // Revisions predate the captured formatting — don't pair old text with it.
+      delete next.contentOoxml;
+    }
+    return get().saveEdit(next);
   },
 
   async remove(id) {
