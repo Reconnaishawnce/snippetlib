@@ -28,8 +28,9 @@ import {
 import type { ExportBundle, Folder, Snippet, SnippetMembership } from "../../models/entities";
 import {
   findMissingMarkers,
+  getSelectedOoxml,
   getSelectedText,
-  insertText,
+  insertParts,
   openReportBuilder,
   writeReportSections,
 } from "../../office/documentIO";
@@ -41,7 +42,7 @@ import { useQueueStore } from "../state/queueStore";
 import { useSearchStore } from "../state/searchStore";
 import { useSnippetStore } from "../state/snippetStore";
 import { useTagStore } from "../state/tagStore";
-import { buildInsertText, planInsert } from "../state/insertFlow";
+import { buildInsertParts, planInsert } from "../state/insertFlow";
 import { backupNudgeDue, exportAndDownload } from "../state/importExportActions";
 import { unInsertedCount } from "../state/queueOps";
 import { buildReportPlan, type ReportPlan } from "../state/reportPlan";
@@ -113,6 +114,8 @@ interface FormSession {
   mode: "create" | "edit";
   initial: SnippetFormValues;
   editing?: Snippet;
+  /** OOXML captured with the selection (rich-text feature); create mode only. */
+  capturedOoxml?: string;
 }
 
 const App: React.FC = () => {
@@ -271,7 +274,8 @@ const App: React.FC = () => {
     onDone?: () => void
   ) => {
     try {
-      await insertText(buildInsertText(snippets, values));
+      const richEnabled = usePrefsStore.getState().prefs?.enableRichText ?? false;
+      await insertParts(buildInsertParts(snippets, values, richEnabled));
       // Frecency: every successful insert bumps useCount/lastUsedAt (unless off).
       if (usePrefsStore.getState().prefs?.enableFrecency ?? true) {
         void useSnippetStore
@@ -462,12 +466,15 @@ const App: React.FC = () => {
     }
     const memberships: SnippetMembership[] =
       scope.kind === "library" ? [{ libraryId: scope.libraryId, folderId: selectedFolderId }] : [];
+    // Rich text (opt-in): capture the selection's OOXML alongside the plain text.
+    const capturedOoxml = prefs?.enableRichText ? await getSelectedOoxml() : undefined;
     if (prefs?.quickSaveMode) {
       // Quick Save (§7.3 ext): no form — auto-name, current folder, Edit/Undo toast.
       try {
         const snippet = await saveNew({
           name: deriveDefaultName(selection),
           content: selection,
+          ...(capturedOoxml !== undefined ? { contentOoxml: capturedOoxml } : {}),
           memberships,
           tagIds: [],
         });
@@ -486,6 +493,7 @@ const App: React.FC = () => {
         memberships,
         tagChips: [],
       },
+      ...(capturedOoxml !== undefined ? { capturedOoxml } : {}),
     });
   };
 
@@ -533,7 +541,18 @@ const App: React.FC = () => {
       const tagIds = await resolveChipTagIds(values.tagChips);
       const { name, content, memberships } = values;
       if (session.mode === "create") {
-        await saveNew({ name, content, memberships, tagIds });
+        // Formatting is only kept when the text wasn't edited in the form.
+        const keepOoxml =
+          session.capturedOoxml !== undefined && content === session.initial.content;
+        await saveNew({
+          name,
+          content,
+          ...(keepOoxml && session.capturedOoxml !== undefined
+            ? { contentOoxml: session.capturedOoxml }
+            : {}),
+          memberships,
+          tagIds,
+        });
       } else if (session.editing) {
         if (content === session.editing.content) {
           // Name/tags/targets only — plain update, no history push (§7.9).

@@ -142,6 +142,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
         onChange={(_, data) => void update({ enableFrecency: Boolean(data.checked) })}
       />
       <Switch
+        label="Rich text snippets (experimental — keep Word formatting)"
+        checked={prefs?.enableRichText ?? false}
+        onChange={(_, data) => void update({ enableRichText: Boolean(data.checked) })}
+      />
+      {prefs?.enableRichText && (
+        <Text size={200} className={styles.hint}>
+          New saves capture formatting (bold, lists, tables) and inserts restore it. Snippets with
+          [placeholders] and generated report tables still insert as plain text, and editing a
+          snippet&apos;s text drops its stored formatting.
+        </Text>
+      )}
+      <Switch
         label="Quick Save (skip the form when saving a selection)"
         checked={prefs?.quickSaveMode ?? false}
         onChange={(_, data) => void update({ quickSaveMode: Boolean(data.checked) })}
