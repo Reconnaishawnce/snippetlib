@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node", "office-js"]
   },
-  "include": ["test"]
+  "include": ["test", "src/globals.d.ts"]
 }

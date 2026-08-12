@@ -1,6 +1,6 @@
 {
   "name": "reportsnips",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "description": "A Microsoft Word task-pane add-in for saving, organizing, and inserting reusable report snippets.",
   "repository": {
     "type": "git",

@@ -3,6 +3,8 @@
 const devCerts = require("office-addin-dev-certs");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const webpack = require("webpack");
+const packageJson = require("./package.json");
 
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://reconnaishawnce.github.io/snippetlib/"; // GitHub Pages deployment (plan §2)
@@ -34,6 +36,11 @@ module.exports = async (env, options) => {
     },
     output: {
       clean: true,
+      // Content-hashed bundles in production: Office's webview caches hard,
+      // and fixed names can mix a cached old HTML with new JS (or vice versa)
+      // right after a deploy. Hashed names make every release atomic. Dev
+      // keeps plain names for HMR.
+      filename: dev ? "[name].js" : "[name].[contenthash:12].js",
     },
     resolve: {
       extensions: [".ts", ".tsx", ".html", ".js"],
@@ -67,6 +74,9 @@ module.exports = async (env, options) => {
       ],
     },
     plugins: [
+      new webpack.DefinePlugin({
+        __APP_VERSION__: JSON.stringify(packageJson.version),
+      }),
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
         template: "./src/taskpane/taskpane.html",

@@ -3,7 +3,7 @@
  * exporter; persistence goes through the StorageProvider; the download uses a
  * blob link (the only reliable file path in Office webviews).
  */
-/* global document, URL, Blob */
+/* global document, URL, Blob, __APP_VERSION__ */
 import {
   buildExportBundle,
   exportFileName,
@@ -17,7 +17,8 @@ import { useSearchStore } from "./searchStore";
 import { useSnippetStore } from "./snippetStore";
 import { useTagStore } from "./tagStore";
 
-const APP_VERSION = "0.1.0";
+// Injected at build time; the typeof guard keeps vitest (no webpack) working.
+const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
 
 function download(fileName: string, json: string): void {
   const blob = new Blob([json], { type: "application/json" });

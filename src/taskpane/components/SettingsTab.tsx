@@ -286,6 +286,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
         </Button>
       </div>
 
+      <Divider />
+      <Text size={200} className={styles.hint}>
+        ReportSnips v{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev"}
+      </Text>
+
       <Dialog open={confirmOpen} onOpenChange={(_, data) => !data.open && setConfirmOpen(false)}>
         <DialogSurface>
           <DialogBody>

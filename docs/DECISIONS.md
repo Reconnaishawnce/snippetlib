@@ -39,3 +39,9 @@ The plan (§4) calls for "ESLint + Prettier, run in CI". The official template s
 **Date:** 2026-08-02 · **Status:** accepted
 
 Owner directive (usability run 2): the interface must stay simple for people who don't want every feature, and settings someone might fiddle into an annoying state (thresholds, alerts) must be easy to neutralize. Standing rule going forward: any feature beyond save/browse/search/insert gets a toggle in Settings → Features (defaulting to today's behavior), and anything that produces unsolicited alerts is opt-in. Current toggles: Queue (tab + Q buttons + menu items), usage sorting/frecency (recording + sorts), Quick Save, drag-into-document, new-tag confirm; stale-snippet review is opt-in with configurable thresholds and an alerts switch. Turning a feature off hides UI but never deletes data.
+
+## ADR-007: Tag-driven releases with content-hashed bundles
+
+**Date:** 2026-08-11 · **Status:** accepted
+
+Users load the production GitHub Pages URL live, so "deploy on every push to main" meant any merge instantly reached every installed copy with no rollback. Deploys now fire only on `v*` tags (main still runs the full check suite including e2e). Production bundles carry content hashes so a release is atomic against Office's aggressive webview caching (no stale-HTML/new-JS mixes). The app version comes from package.json via DefinePlugin and is shown at the bottom of Settings, so "what version are you on?" is answerable. Release procedure: bump `version` in package.json, add the CHANGELOG release header, commit, `git tag vX.Y.Z && git push origin vX.Y.Z`.
